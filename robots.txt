@@ -1,0 +1,12 @@
+User-agent: *
+Disallow: /contactform/
+Disallow: /css/
+Disallow: /images/
+Disallow: /img/
+Disallow: /cgi-bin/
+Disallow: /js/
+Disallow: /lib/
+Sitemap: https://предрейс.рф/sitemap.xml
+Host: https://предрейс.рф
+User-agent: Yandex
+Clean-param: utm

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<yml_catalog date="2022-09-28T13:37+04:00">
+    <shop>
+        <name>Предрейсовые осмотры. Выпуск на линию</name>
+        <company>ПРЕДРЕЙС</company>
+        <url>https://предрейс.рф</url>
+        <currencies>
+            <currency id="RUR" rate="1"/>
+        </currencies>
+        <categories>
+            <category id="1">Услуги</category>
+            <category id="10" parentId="1">Выпуск автотранспорта на линию</category>
+        </categories>
+        <offers>
+            <offer id="100">
+                <name>Предрейсовый медицинский осмотр водителей</name>
+                <url>https://предрейс.рф/pmo.html</url>
+                <price>2000</price>
+                <currencyId>RUR</currencyId>
+                <categoryId>10</categoryId>
+                <picture>https://предрейс.рф/img/slides_01_3.jpg</picture>
+                <description>Заключение договора на предрейсовый медосмотр водителей по разумной цене и в максимально удобной для Вас форме</description>
+                <sales_notes>Цена указана за выпуск на линию 1 водителя ежедневно.</sales_notes>
+            </offer>
+            
+            <offer id="200">
+                <name>Предрейсовый технический осмотр автомобиля</name>
+                <url>https://предрейс.рф/ptk.html</url>
+                <price>2000</price>
+                <currencyId>RUR</currencyId>
+                <categoryId>10</categoryId>
+                <picture>https://предрейс.рф/img/slides_02_2.jpg</picture>
+                <description>Заключение договора на предрейсовый контроль технического состояния транспортных средств по разумной цене и в максимально удобной для Вас форме</description>
+                <sales_notes>Цена указана за выпуск на линию 1 ТС ежедневно.</sales_notes>
+            </offer>    
+            
+            <offer id="300">
+                <name>Предрейсовые медосмотры и техосмотры</name>
+                <url>https://предрейс.рф/combo.html</url>
+                <price>3000</price>
+                <currencyId>RUR</currencyId>
+                <categoryId>10</categoryId>
+                <picture>https://предрейс.рф/img/slides_03_3.jpg</picture>
+                <description>Заключение комбинированного договора на предрейсовый медицинские и технические осмотры по разумной цене и в максимально удобной для Вас форме</description>
+                <sales_notes>Цена указана за выпуск на линию 1 транспортной единицы (водитель+автомобиль) ежедневно.</sales_notes>
+            </offer>
+            
+            <offer id="400">
+                <name>Специалист по безопасности дорожного движения</name>
+                <url>https://предрейс.рф/bdd.html</url>
+                <price>5000</price>
+                <currencyId>RUR</currencyId>
+                <categoryId>10</categoryId>
+                <picture>https://предрейс.рф/img/slides_04_3.jpg</picture>
+                <description>Организация мероприятий по БДД. Подготовка нормативных актов. Аттестованные в Ространснадзоре специалисты.</description>
+            </offer>
+            
+            <offer id="500">
+                <name>Диспетчеризация. Ведение илм восстановление путевых листов</name>
+                <url>https://предрейс.рф/dispetcher.html</url>
+                <price>5000</price>
+                <currencyId>RUR</currencyId>
+                <categoryId>10</categoryId>
+                <picture>https://предрейс.рф/img/slides_05_1.jpg</picture>
+                <description>Восстановление путевых листов по чекам с заправок и минимальных данных по пробегу авто. Вам останется только приложить акт списания ГСМ</description>
+                <sales_notes>Цена указана за ведение путевой документации на 1 автомобиль.</sales_notes>
+                </offer>
+        </offers>
+    </shop>
+</yml_catalog>

@@ -1,0 +1,5 @@
+RewriteEngine On
+RewriteBase /
+RewriteCond %{HTTP:X-HTTPS} !1
+RewriteCond %{HTTP_HOST} ^предрейс\.рф$
+RewriteRule ^(.*)$ https://предрейс.рф/$1 [R=301,L]
