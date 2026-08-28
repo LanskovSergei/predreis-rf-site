@@ -25,7 +25,7 @@
 	.title:before,
 	.post-meta a:hover,
 	 .title:after{
-		border-color:#3498db
+		border-color:#8285bf
 	}
 
 	.panel-primary > .panel-heading + .panel-collapse .panel-body,
@@ -36,7 +36,7 @@
 	.navbar-default .navbar-nav > .active > a:focus,
 	.navbar-inverse .navbar-nav > .active > a:focus,
 	.nav .caret {
-	  border-bottom-color: #3498db;
+	  border-bottom-color: #8285bf;
 	}
 
 	.panel-primary > .panel-heading + .panel-collapse .panel-body,
@@ -44,11 +44,11 @@
 	.blue > li:hover > a, .blue > li.active > a,
 	.top-bar-section .dropdown,
 	 .top-bar-section .has-dropdown > a:after {
-		border-top-color:#3498db
+		border-top-color:#8285bf
 	}
 	
 	.dm-icon-effect-1 .dm-icon:after {
-		box-shadow: 0 0 0 5px #3498db;
+		box-shadow: 0 0 0 5px #8285bf;
 	}
 	.site-title span,
 	.text-primary,
@@ -85,7 +85,7 @@
 	.top-bar-section ul li:hover > a,
 	.top-bar-section ul li.active > a,
 	.recent_posts li a.readmore {
-		color:#3498db;
+		color:#8285bf;
 	}
 
 	.pagination > .active > a,
@@ -154,12 +154,12 @@
 	#bbpress-forums li.bbp-body ul.forum li.bbp-forum-topic-count,
 	#bbpress-forums li.bbp-body ul.forum li.bbp-forum-reply-count,
 	.dmtop {
-		background-color:#3498db;
+		background-color:#8285bf;
 	}
 	
 	.services_lists_boxes_icon_none i:hover,
 	.services_lists_boxes_icon i:hover {
-		background:#3498db !important;
+		background:#8285bf !important;
 	}
 	.transparent-wrap {
 		background-color: rgba(42, 205, 201, 0.6);

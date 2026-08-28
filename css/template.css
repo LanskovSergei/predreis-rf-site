@@ -9,7 +9,7 @@
 }
 
 	.popup_bg {
-		background:rgba(52,152,219,0.7);
+		background:rgba(130,133,191,0.7);
 		position:absolute;
 		top:0;
 		left:0;
@@ -86,7 +86,7 @@
 .upload_form div {
 	width: 96%;
 	height: 34px;
-	background: rgb(52,152,219);
+	background: rgb(130,133,191);
 	border-radius: 4px;
 	color: #fff;
 	text-align: center;

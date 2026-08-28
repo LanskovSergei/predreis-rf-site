@@ -470,43 +470,7 @@ body.nobg .section1 {
   margin: 20px 0 0;
 }
 
-#intro {
-  background: url(../img/intro-bg.jpg) center center no-repeat fixed;
-  background-size: cover;
-  padding: 80px 0;
-  text-align: center;
-}
 
-#intro h1 {
-  color: #ffffff;
-  padding: 0;
-  margin: 0 0 20px 0;
-  font-size: 42px;
-}
-
-#intro p {
-  color: #ffffff;
-  font-size: 18px;
-  line-height: 28px;
-  padding: 0;
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  #intro {
-    background-attachment: scroll;
-  }
-
-  #intro h1 {
-    font-size: 28px;
-  }
-
-  #intro p {
-    font-size: 15px;
-  }
-
-
-}
 .post-wrapper-top {
   background-color: #F5F5F5;
   bottom: 0;
@@ -861,7 +825,7 @@ body.nobg .section1 {
 }
 
 .section2 {
-  background: #464646;
+  background: #1C1F41;
   padding: 30px 0;
 }
 
@@ -877,7 +841,7 @@ body.nobg .section1 {
 }
 
 .section5 h4 {
-  color: #f2f2f2;
+  color: #1C1F41;
 }
 
 .withpadding {
@@ -944,6 +908,11 @@ body.nobg .section1 {
   text-transform: uppercase;
 }
 
+.section1 .general-title h3,
+.section4 .general-title h3 {
+  color: #1C1F41;
+}
+
 .title {
   position: relative;
   padding-bottom: 20px;
@@ -978,6 +947,10 @@ body.nobg .section1 {
   font-weight: 700;
 }
 
+.section3 .message h3 {
+  color: #1C1F41;
+}
+
 .message .button {
   margin-top: 30px;
 }
@@ -1000,6 +973,13 @@ body.nobg .section1 {
   font-size: 21px;
   letter-spacing: -0.65px;
   font-weight: 500;
+  color: #1C1F41;
+}
+
+.servicebox .dm-icon,
+.no-touch .servicebox .dm-icon-effect-1 .dm-icon.active,
+.no-touch .servicebox .dm-icon-effect-1 .dm-icon:hover {
+  background: #1C1F41 !important;
 }
 
 .services_lists_boxes_icon:after {
@@ -1394,6 +1374,10 @@ body.nobg .section1 {
   text-align: center;
 }
 
+.custom-box .servicetitle h4 {
+  color: #1C1F41;
+}
+
 .custom-box .widget-title {
   margin-top: 10px
 }
@@ -1747,7 +1731,7 @@ button.small, .button.small {
   width: 80px !important;
   height: 80px !important;
   margin: 25px 15px !important;
-  background: #3E4246 !important;
+  background: #1C1F41 !important;
 }
 
 .services_lists_boxes_icon_none i:hover, .services_lists_boxes_icon i:hover {
@@ -2703,7 +2687,7 @@ ul.contact-service {
 }
 
 .contact-service li:hover {
-	color: #3498db;
+	color: #8285bf;
 }
 
 .l_spacing {
@@ -2721,7 +2705,7 @@ ul.contact-service {
 	text-align:center; 
 	display:flex; 
 	margin: 12px;
-	font: 20px bold #3498db;
+	font: 20px bold #8285bf;
 }
 
 .li_post {
@@ -2758,5 +2742,5 @@ ul.style3 a {
 	color: #696E74;
 }
 ul.style3 a:hover {
-	color:#3498db;
+	color:#8285bf;
 }

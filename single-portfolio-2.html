@@ -27,6 +27,8 @@
   <!-- Main Stylesheet File -->
   <link href="css/style.css" rel="stylesheet">
   <link rel="stylesheet" href="css/colors/blue.css">
+  <link href="css/layout.css" rel="stylesheet">
+
 
   <!-- =======================================================
     Template Name: MaxiBiz
@@ -37,91 +39,53 @@
 </head>
 
 <body>
-  <div class="topbar clearfix">
+        <header class="header pr-header">
     <div class="container">
-      <div class="col-lg-12 text-right">
-        <div class="social_buttons">
-          <a href="#" data-toggle="tooltip" data-placement="bottom" title="Facebook"><i class="fa fa-facebook"></i></a>
-          <a href="#" data-toggle="tooltip" data-placement="bottom" title="Twitter"><i class="fa fa-twitter"></i></a>
-          <a href="#" data-toggle="tooltip" data-placement="bottom" title="Google+"><i class="fa fa-google-plus"></i></a>
-          <a href="#" data-toggle="tooltip" data-placement="bottom" title="Dribbble"><i class="fa fa-dribbble"></i></a>
-          <a href="#" data-toggle="tooltip" data-placement="bottom" title="RSS"><i class="fa fa-rss"></i></a>
+      <div class="pr-header__inner clearfix">
+        <a href="index.html" class="pr-header__logo">
+          <img src="img/logo-predreis.png?v=3" alt="ПРЕДРЕЙС — линии безопасности" height="56">
+        </a>
+        <div class="pr-header__nav-wrap">
+          <div id="nav">
+            <ul id="jetmenu" class="jetmenu pr-nav blue">
+              <li><a href="index.html">Главная</a></li>
+              <li><a href="#">Услуги</a>
+                <ul class="dropdown">
+                  <li><a href="service.html">Все услуги</a></li>
+                  <li><a href="pmo.html">Предрейсовый медосмотр</a></li>
+                  <li><a href="ptk.html">Предрейсовый техконтроль</a></li>
+                  <li><a href="combo.html">Медосмотр + Техконтроль</a></li>
+                  <li><a href="bdd.html">Специалист по БДД</a></li>
+                  <li><a href="dispetcher.html">Ведение путевой документации</a></li>
+                </ul>
+              </li>
+              <li><a href="gsm-calculator/">Калькулятор ГСМ</a></li>
+              <li><a href="#">Всё о БДД</a>
+                <ul class="dropdown">
+                  <li><a href="faq.html">Узнать больше</a></li>
+                  <li><a href="download.html">Скачать</a></li>
+                  <li><a href="zakon.html">Законы</a></li>
+                </ul>
+              </li>
+              <li><a href="#">ПРЕДРЕЙС</a>
+                <ul class="dropdown">
+                  <li><a href="contact.html">Контакты</a></li>
+                  <li><a href="about.html">О нас</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <a href="https://predreis.online" class="pr-header__online" target="_blank" rel="noopener" title="ПРЕДРЕЙС ONLINE">
+          <img src="img/logo-icon.png?v=4" alt="ПРЕДРЕЙС ONLINE" width="40" height="40">
+        </a>
+        <div class="pr-header__contacts">
+          <a href="tel:+79250288755" class="pr-header__phone">+7 925 028-87-55</a>
+          <a href="mailto:predreis@predreis.online">predreis@predreis.online</a>
+          <a href="mailto:predreis@predreis.info">predreis@predreis.info</a>
         </div>
       </div>
     </div>
-    <!-- end container -->
-  </div>
-  <!-- end topbar -->
-
-  <header class="header">
-    <div class="container">
-      <div class="site-header clearfix">
-        <div class="col-lg-3 col-md-3 col-sm-12 title-area">
-          <div class="site-title" id="title">
-            <a href="index.html" title="">
-              <h4>MAXI<span>BIZ</span></h4>
-            </a>
-          </div>
-        </div>
-        <!-- title area -->
-        <div class="col-lg-9 col-md-12 col-sm-12">
-          <div id="nav" class="right">
-            <div class="container clearfix">
-              <ul id="jetmenu" class="jetmenu blue">
-                <li><a href="index.html">Home</a>
-                </li>
-                <li><a href="#">Pages</a>
-                  <ul class="dropdown">
-                    <li><a href="about.html">About Us</a></li>
-                    <li><a href="services.html">Services</a></li>
-                    <li><a href="team-members.html">Team Members</a></li>
-                    <li><a href="testimonials.html">Testimonials</a></li>
-                    <li><a href="404.html">404 Error</a></li>
-                    <li><a href="faq.html">FAQ Page</a></li>
-                    <li><a href="left-sidebar.html">Left Sidebar</a></li>
-                    <li><a href="right-sidebar.html">Right Sidebar</a></li>
-                    <li><a href="fullwidth.html">Full Width</a></li>
-                    <li><a href="login.html">Login</a></li>
-                    <li><a href="register.html">Register</a></li>
-                    <li><a href="contact.html">Contact</a></li>
-                  </ul>
-                </li>
-                <li><a href="#">Shop</a>
-                  <ul class="dropdown">
-                    <li><a href="digital-download.html">Products Page</a></li>
-                    <li><a href="single-product.html">Single Product</a></li>
-                    <li><a href="checkout.html">Checkout</a></li>
-                    <li><a href="account.html">Account Page</a></li>
-                    <li><a href="support.html">Support Center</a></li>
-                  </ul>
-                </li>
-                <li class="active"><a href="#">Portfolio</a>
-                  <ul class="dropdown">
-                    <li><a href="single-portfolio-1.html">Single Portfolio 1</a></li>
-                    <li><a href="single-portfolio-2.html">Single Portfolio 2</a></li>
-                    <li><a href="portfolio-2.html">Portfolio (2 Columns)</a></li>
-                    <li><a href="portfolio-3.html">Portfolio (3 Columns)</a></li>
-                    <li><a href="gallery-portfolio.html">Gallery</a></li>
-                    <li><a href="masonry-grid-portfolio.html">Masonry Grid Style</a></li>
-                  </ul>
-                </li>
-                <li><a href="#">Blog</a>
-                  <ul class="dropdown">
-                    <li><a href="blog-left-sidebar.html">Blog Left Sidebar</a></li>
-                    <li><a href="blog-right-sidebar.html">Blog Right Sidebar</a></li>
-                    <li><a href="single-with-sidebar.html">Single with Sidebar</a></li>
-                  </ul>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <!-- nav -->
-        </div>
-        <!-- title area -->
-      </div>
-      <!-- site header -->
-    </div>
-    <!-- end container -->
   </header>
   <!-- end header -->
 
@@ -267,90 +231,63 @@
   </section>
   <!-- end section -->
 
-  <footer class="footer">
-    <div class="container">
-      <div class="widget col-lg-3 col-md-3 col-sm-12">
-        <h4 class="title">About us</h4>
-        <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry"s standard dummy text ever since the 1500s..</p>
-        <a class="button small" href="#">read more</a>
-      </div>
-      <!-- end widget -->
-      <div class="widget col-lg-3 col-md-3 col-sm-12">
-        <h4 class="title">Recent Posts</h4>
-        <ul class="recent_posts">
-          <li>
-            <a href="home1.html#">
-						<img src="img/recent_post_01.png" alt="" />Our New Dashboard Is Here</a>
-            <a class="readmore" href="#">read more</a>
-          </li>
-          <li>
-            <a href="home1.html#">
-						<img src="img/recent_post_02.png" alt="" />Design Is In The Air</a>
-            <a class="readmore" href="#">read more</a>
-          </li>
-        </ul>
-        <!-- recent posts -->
-      </div>
-      <!-- end widget -->
-      <div class="widget col-lg-3 col-md-3 col-sm-12">
-        <h4 class="title">Get In Touch</h4>
-        <ul class="contact_details">
-          <li><i class="fa fa-envelope-o"></i> info@yoursite.com</li>
-          <li><i class="fa fa-phone-square"></i> +34 5565 6555</li>
-          <li><i class="fa fa-home"></i> Some Fine Address, 887, Madrid, Spain.</li>
-          <li><a href="#"><i class="fa fa-map-marker"></i> View large map</a></li>
-        </ul>
-        <!-- contact_details -->
-      </div>
-      <!-- end widget -->
-      <div class="widget col-lg-3 col-md-3 col-sm-12">
-        <h4 class="title">Flickr Stream</h4>
-        <ul class="flickr">
-          <li><a href="#"><img alt="" src="img/flickr_01.jpg"></a></li>
-          <li><a href="#"><img alt="" src="img/flickr_02.jpg"></a></li>
-          <li><a href="#"><img alt="" src="img/flickr_03.jpg"></a></li>
-          <li><a href="#"><img alt="" src="img/flickr_04.jpg"></a></li>
-          <li><a href="#"><img alt="" src="img/flickr_05.jpg"></a></li>
-          <li><a href="#"><img alt="" src="img/flickr_06.jpg"></a></li>
-          <li><a href="#"><img alt="" src="img/flickr_07.jpg"></a></li>
-          <li><a href="#"><img alt="" src="img/flickr_08.jpg"></a></li>
-        </ul>
-      </div>
-      <!-- end widget -->
-    </div>
-    <!-- end container -->
-
-    <div class="copyrights">
+          <footer class="footer pr-footer">
+    <div class="pr-footer__main">
       <div class="container">
-        <div class="col-lg-6 col-md-6 col-sm-12 columns footer-left">
-          <p>Copyright © 2014 - All rights reserved.</p>
-          <div class="credits">
-            <!--
-              You are NOT allowed to delete the credit link to TemplateMag with free version.
-              You can delete the credit link only if you bought the pro version.
-              Buy the pro version with working PHP/AJAX contact form: https://templatemag.com/maxibiz-bootstrap-business-template/
-              Licensing information: https://templatemag.com/license/
-            -->
-            Created with MaxiBiz template by <a href="https://templatemag.com/">TemplateMag</a>
+        <div class="row pr-footer__grid">
+          <div class="col-lg-4 col-md-4 col-sm-12 pr-footer__about">
+            <a href="index.html" class="pr-footer__logo">
+              <img src="img/logo-predreis-footer.png" alt="ПРЕДРЕЙС — линии безопасности">
+            </a>
+            <p>ООО «ПРЕДРЕЙС» объединяет специалистов и экспертов в области организации мероприятий по безопасности дорожного движения</p>
+            <a class="pr-footer__more" href="about.html">Подробнее &rarr;</a>
           </div>
-        </div>
-        <!-- end widget -->
-        <div class="col-lg-6 col-md-6 col-sm-12 columns text-right">
-          <div class="footer-menu right">
-            <ul class="menu">
-              <li><a href="index.html">Home</a></li>
-              <li><a href="about.html">About</a></li>
-              <li><a href="#">Sitemap</a></li>
-              <li><a href="#">Site Terms</a></li>
-              <li><a href="contact">Contact</a></li>
+          <div class="col-lg-5 col-md-5 col-sm-12 pr-footer__contacts">
+            <p class="pr-footer__label">Телефон</p>
+            <a href="tel:+79250288755" class="pr-footer__phone">+7 925 028-87-55</a>
+            <a href="tel:+79267996136" class="pr-footer__phone">+7 926 799-61-36</a>
+            <p class="pr-footer__label">Email</p>
+            <a href="mailto:predreis@predreis.online" class="pr-footer__email">predreis@predreis.online</a>
+            <a href="mailto:predreis@predreis.info" class="pr-footer__email">predreis@predreis.info</a>
+            <p class="pr-footer__label">Адрес</p>
+            <span class="pr-footer__address">
+              <strong class="pr-footer__address-city">Москва,</strong>
+              <span class="pr-footer__address-line">Варшавское шоссе, 141А, к. 4</span>
+            </span>
+            <a href="contact.html" class="pr-footer__map">На карте</a>
+          </div>
+          <div class="col-lg-3 col-md-3 col-sm-12 pr-footer__services">
+            <p class="pr-footer__label">Услуги</p>
+            <ul>
+              <li><a href="pmo.html">Предрейсовый медосмотр</a></li>
+              <li><a href="ptk.html">Предрейсовый техконтроль</a></li>
+              <li><a href="combo.html">Медосмотр + техконтроль</a></li>
+              <li><a href="bdd.html">Специалист по БДД</a></li>
+              <li><a href="dispetcher.html">Ведение путевой документации</a></li>
+              <li><a href="https://predreis.online" target="_blank" rel="noopener">Калькулятор ГСМ</a></li>
             </ul>
+            <a href="https://predreis.online" class="pr-footer__online-badge" target="_blank" rel="noopener">
+              <img src="img/logo-predreis-online.png" alt="ПРЕДРЕЙС ONLINE">
+            </a>
           </div>
         </div>
-        <!-- end large-6 -->
       </div>
-      <!-- end container -->
     </div>
-    <!-- end copyrights -->
+    <div class="pr-footer__bar">
+      <div class="container">
+        <p class="pr-footer__copyright">Copyright &copy; 2026 - All rights reserved</p>
+        <div class="pr-footer__search-wrap">
+          <form class="pr-footer__search-form" action="https://yandex.ru/search/site/" method="get" target="_blank">
+            <input type="hidden" name="searchid" value="">
+            <input type="text" name="text" placeholder="Поиск по сайту..." aria-label="Поиск">
+            <button type="submit">Найти</button>
+          </form>
+          <button type="button" class="pr-footer__search-toggle" aria-expanded="false">
+            <i class="fa fa-search"></i> Поиск
+          </button>
+        </div>
+      </div>
+    </div>
   </footer>
   <!-- end footer -->
   <div class="dmtop">Scroll to Top</div>
@@ -371,7 +308,8 @@
   <script src="lib/easypiechart/easypiechart.min.js"></script>
 
   <!-- Template Main Javascript File -->
-  <script src="js/main.js"></script>
+    <script src="js/layout.js"></script>
+<script src="js/main.js"></script>
 
 </body>
 </html>
@@ -381,7 +319,8 @@ pt>
   <script src="lib/easypiechart/easypiechart.min.js"></script>
 
   <!-- Template Main Javascript File -->
-  <script src="js/main.js"></script>
+    <script src="js/layout.js"></script>
+<script src="js/main.js"></script>
 
 </body>
 </html>

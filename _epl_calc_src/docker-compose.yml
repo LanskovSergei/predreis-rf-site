@@ -1,0 +1,11 @@
+services:
+  demo:
+    build:
+      context: .
+      args:
+        # Build-time (Vite инлайнит в бандл) — адрес уже развёрнутого бэкенда
+        # EPL_Calculator. Подставь реальный домен перед сборкой.
+        VITE_API_URL: ${VITE_API_URL:-https://gsm.example.ru}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:80"

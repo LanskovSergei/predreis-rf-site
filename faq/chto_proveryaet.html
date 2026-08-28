@@ -43,6 +43,8 @@
   <!-- Main Stylesheet File -->
   <link href="../css/style.css" rel="stylesheet">
   <link rel="stylesheet" href="../css/colors/blue.css">
+  <link href="../css/layout.css" rel="stylesheet">
+
 
 
 <style>
@@ -79,70 +81,53 @@
 </head>
 
 <body>
-  <div class="topbar clearfix">
-	<div class="container-adress text-right">
-		<a href="tel:+89250288755"><span>+7 (925) 028-87-55</span></a><br>
-	   <a href="mailto:predreis@predreis.info"><span>predreis@predreis.info</span></a>
-	</div>
-	<div class="container-adress text-right">
-		<i class="fa fa-phone"> </i><br>
-		<i class="fa fa-envelope"> </i>
-	</div>
-    <!-- end container -->
-  </div>
-  <!-- end topbar -->
-
-  <header class="header">
+        <header class="header pr-header">
     <div class="container">
-      <div class="site-header clearfix">
-        <div class="col-lg-3 col-md-3 col-sm-12 title-area">
-          <div class="site-title" id="title">
-            <a href="../index.html" title="">
-              <h4>Компания<span> ПРЕДРЕЙС</span></h4>
-            </a>
+      <div class="pr-header__inner clearfix">
+        <a href="../index.html" class="pr-header__logo">
+          <img src="../img/logo-predreis.png?v=3" alt="ПРЕДРЕЙС — линии безопасности" height="56">
+        </a>
+        <div class="pr-header__nav-wrap">
+          <div id="nav">
+            <ul id="jetmenu" class="jetmenu pr-nav blue">
+              <li><a href="../index.html">Главная</a></li>
+              <li><a href="#">Услуги</a>
+                <ul class="dropdown">
+                  <li><a href="../service.html">Все услуги</a></li>
+                  <li><a href="../pmo.html">Предрейсовый медосмотр</a></li>
+                  <li><a href="../ptk.html">Предрейсовый техконтроль</a></li>
+                  <li><a href="../combo.html">Медосмотр + Техконтроль</a></li>
+                  <li><a href="../bdd.html">Специалист по БДД</a></li>
+                  <li><a href="../dispetcher.html">Ведение путевой документации</a></li>
+                </ul>
+              </li>
+              <li><a href="../gsm-calculator/">Калькулятор ГСМ</a></li>
+              <li class="active"><a href="#">Всё о БДД</a>
+                <ul class="dropdown">
+                  <li><a href="../faq.html">Узнать больше</a></li>
+                  <li><a href="../download.html">Скачать</a></li>
+                  <li><a href="../zakon.html">Законы</a></li>
+                </ul>
+              </li>
+              <li><a href="#">ПРЕДРЕЙС</a>
+                <ul class="dropdown">
+                  <li><a href="../contact.html">Контакты</a></li>
+                  <li><a href="../about.html">О нас</a></li>
+                </ul>
+              </li>
+            </ul>
           </div>
         </div>
-        <!-- title area -->
-        <div class="col-lg-9 col-md-12 col-sm-12">
-          <div id="nav" class="right">
-            <div class="container clearfix">
-              <ul id="jetmenu" class="jetmenu blue">
-                <li><a href="../index.html">Главная</a>
-                </li>
-				<li class="active"><a href="#">Всё о БДД</a>
-					<ul class="dropdown">
-						<li><a href="../faq.html">Узнать больше</a></li>
-						<li><a href="../download.html">Скачать</a></li>
-						<li><a href="../zakon.html">Законы</a></li>
-					</ul>
-				</li>
-                <li><a href="#">Услуги</a>
-					<ul class="dropdown">
-						<li><a href="../service.html">Все услуги</a></li>
-						<li><a href="../pmo.html">Предрейсовый медосмотр</a></li>
-						<li><a href="../ptk.html">Предрейсовый техконтроль</a></li>
-						<li><a href="../combo.html">Медосмотр + Техконтроль</a></li>
-						<li><a href="../bdd.html">Специалист по БДД</a></li>
-						<li><a href="../dispetcher.html">Ведение путевой документации</a></li>
-					</ul>
-                </li>
-                <li><a href="#">Контакты</a>
-					<ul class="dropdown">
-						<li><a href="../contact.html">Контакты</a></li>
-						<li><a href="../about.html">О нас</a></li>
-
-					</ul>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <!-- nav -->
+        <a href="https://predreis.online" class="pr-header__online" target="_blank" rel="noopener" title="ПРЕДРЕЙС ONLINE">
+          <img src="../img/logo-icon.png?v=4" alt="ПРЕДРЕЙС ONLINE" width="40" height="40">
+        </a>
+        <div class="pr-header__contacts">
+          <a href="tel:+79250288755" class="pr-header__phone">+7 925 028-87-55</a>
+          <a href="mailto:predreis@predreis.online">predreis@predreis.online</a>
+          <a href="mailto:predreis@predreis.info">predreis@predreis.info</a>
         </div>
-        <!-- title area -->
       </div>
-      <!-- site header -->
     </div>
-    <!-- end container -->
   </header>
   <!-- end header -->
   <!-- end header -->
@@ -200,82 +185,63 @@
   </section>
   <!-- end section -->
 
-  <footer class="footer">
-    <div class="container">
-      <div class="widget col-lg-3 col-md-3 col-sm-12">
-        <h4 class="title">О нас</h4>
-        <p>ООО "ПРЕДРЕЙС" объединяет специалистов и экспертов в области организации мероприятий по безопасности дорожного движения</p>
-        <a class="button small" href="../about.html">больше</a>
-      </div>
-      <!-- end widget -->
-      <div class="widget col-lg-3 col-md-3 col-sm-12">
-        <h4 class="title">Последние сообщения</h4>
-        <ul class="recent_posts">
-          <li>
-            <a href="faq.html">
-						<img src="../img/recent_post_01.png" alt="" />Методика проведения техконтроля</a>
-            <a class="readmore" href="../faq.html#collapseMetodPTK">больше</a>
-          </li>
-          <li>
-            <a href="faq.html">
-						<img src="../img/recent_post_02.png" alt="" />Кто может управлять автомобилем фирмы</a>
-            <a class="readmore" href="../faq.html#collapse_voditel">больше</a>
-          </li>
-        </ul>
-        <!-- recent posts -->
-      </div>
-      <!-- end widget -->
-      <div class="widget col-lg-3 col-md-3 col-sm-12">
-        <h4 class="title">Контакты</h4>
-        <ul class="contact_details">
-          <li><i class="fa fa-envelope-o"></i> predreis@predreis.info</li>
-          <li><i class="fa fa-phone-square"></i> +7 925 028 8755</li>
-		  <li><i class="fa fa-phone-square"></i> +7 926 799 6136</li>
-          <li><i class="fa fa-home"></i> г.Москва, ул.Кирпичные Выемки, д.2, к.1</li>
-          <li><a href="../contact.html"><i class="fa fa-map-marker"></i> На карте</a></li>
-        </ul>
-        <!-- /contact.hml_details -->
-      </div>
-      <!-- end widget -->
-      <div class="widget col-lg-3 col-md-3 col-sm-12">
-        <h4 class="title">УСЛУГИ</h4>
-        <ul class="flickr">
-          <li><a href="../pmo.html" title="Заключение договора на предрейсовый медицинский осмотр"><img alt="" src="../img/portfolio_01.jpg"></a></li>
-          <li><a href="../ptk.html" title="Заключение договора на предрейсовый технический контроль состояния ТС"><img alt="" src="../img/portfolio_02.jpg"></a></li>
-          <li><a href="../combo.html" title="Договор на предрейсовые медицинские и технические осмотры со скидкой"><img alt="" src="../img/portfolio_031.jpg"></a></li>
-          <li><a href="../bdd.html" title="Аутсорсинг специалиста по БДД"><img alt="" src="../img/portfolio_03.jpg"></a></li>
-          <li><a href="../dispetcher.html" title="Создание путевых листов и локальных нормативных актов"><img alt="" src="../img/portfolio_04.jpg"></a></li>
-          <li><a href="../dispetcher.html" title="Восстановление путевых листов по чекам ГСМ"><img alt="" src="../img/portfolio_05.jpg"></a></li>
-          <li><a href="../index.html" title="Аудит транспортной деятельности"><img alt="" src="../img/portfolio_06.jpg"></a></li>
-          <li><a href="../parking.html" title="Заключение договора стоянки ТС в Москве"><img alt="" src="../img/portfolio_07.jpg"></a></li>
-        </ul>
-      </div>
-      <!-- end widget -->
-    </div>
-    <!-- end container -->
-
-    <div class="copyrights">
+          <footer class="footer pr-footer">
+    <div class="pr-footer__main">
       <div class="container">
-        <div class="col-lg-6 col-md-6 col-sm-12 columns footer-left">
-          <p>Copyright © 2020 - All rights reserved.</p>
-           
-        </div>
-        <!-- end widget -->
-        <div class="col-lg-6 col-md-6 col-sm-12 columns text-right">
-          <div class="footer-menu right">
-            <ul class="menu">
-              <li><a href="../index.html">Главная</a></li>
-              <li><a href="../about.html">О нас</a></li>
-              <li><a href="../sitemap.xml">Sitemap</a></li>
-              <li><a href="../contact.hml">Контакты</a></li>
+        <div class="row pr-footer__grid">
+          <div class="col-lg-4 col-md-4 col-sm-12 pr-footer__about">
+            <a href="../index.html" class="pr-footer__logo">
+              <img src="../img/logo-predreis-footer.png" alt="ПРЕДРЕЙС — линии безопасности">
+            </a>
+            <p>ООО «ПРЕДРЕЙС» объединяет специалистов и экспертов в области организации мероприятий по безопасности дорожного движения</p>
+            <a class="pr-footer__more" href="../about.html">Подробнее &rarr;</a>
+          </div>
+          <div class="col-lg-5 col-md-5 col-sm-12 pr-footer__contacts">
+            <p class="pr-footer__label">Телефон</p>
+            <a href="tel:+79250288755" class="pr-footer__phone">+7 925 028-87-55</a>
+            <a href="tel:+79267996136" class="pr-footer__phone">+7 926 799-61-36</a>
+            <p class="pr-footer__label">Email</p>
+            <a href="mailto:predreis@predreis.online" class="pr-footer__email">predreis@predreis.online</a>
+            <a href="mailto:predreis@predreis.info" class="pr-footer__email">predreis@predreis.info</a>
+            <p class="pr-footer__label">Адрес</p>
+            <span class="pr-footer__address">
+              <strong class="pr-footer__address-city">Москва,</strong>
+              <span class="pr-footer__address-line">Варшавское шоссе, 141А, к. 4</span>
+            </span>
+            <a href="../contact.html" class="pr-footer__map">На карте</a>
+          </div>
+          <div class="col-lg-3 col-md-3 col-sm-12 pr-footer__services">
+            <p class="pr-footer__label">Услуги</p>
+            <ul>
+              <li><a href="../pmo.html">Предрейсовый медосмотр</a></li>
+              <li><a href="../ptk.html">Предрейсовый техконтроль</a></li>
+              <li><a href="../combo.html">Медосмотр + техконтроль</a></li>
+              <li><a href="../bdd.html">Специалист по БДД</a></li>
+              <li><a href="../dispetcher.html">Ведение путевой документации</a></li>
+              <li><a href="https://predreis.online" target="_blank" rel="noopener">Калькулятор ГСМ</a></li>
             </ul>
+            <a href="https://predreis.online" class="pr-footer__online-badge" target="_blank" rel="noopener">
+              <img src="../img/logo-predreis-online.png" alt="ПРЕДРЕЙС ONLINE">
+            </a>
           </div>
         </div>
-        <!-- end large-6 -->
       </div>
-      <!-- end container -->
     </div>
-    <!-- end copyrights -->
+    <div class="pr-footer__bar">
+      <div class="container">
+        <p class="pr-footer__copyright">Copyright &copy; 2026 - All rights reserved</p>
+        <div class="pr-footer__search-wrap">
+          <form class="pr-footer__search-form" action="https://yandex.ru/search/site/" method="get" target="_blank">
+            <input type="hidden" name="searchid" value="">
+            <input type="text" name="text" placeholder="Поиск по сайту..." aria-label="Поиск">
+            <button type="submit">Найти</button>
+          </form>
+          <button type="button" class="pr-footer__search-toggle" aria-expanded="false">
+            <i class="fa fa-search"></i> Поиск
+          </button>
+        </div>
+      </div>
+    </div>
   </footer>
   <!-- end footer -->
   <div class="dmtop">Scroll to Top</div>
@@ -296,7 +262,8 @@
   <script src="../lib/easypiechart/easypiechart.min.js"></script>
 
   <!-- Template Main Javascript File -->
-  <script src="../js/main.js"></script>
+    <script src="../js/layout.js"></script>
+<script src="../js/main.js"></script>
 
 </body>
 </html>
