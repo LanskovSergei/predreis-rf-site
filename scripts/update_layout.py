@@ -16,6 +16,7 @@ SERVICE_PAGES = {
     "bdd.html", "dispetcher.html", "audit.html", "parking.html",
     "sertificate1.html", "sertificate2.html", "license1.html", "license2.html",
 }
+SERVICE_DIRS = {"epl"}
 
 ABOUT_PAGES = {"contact.html", "about.html"}
 
@@ -36,7 +37,7 @@ def get_active(filepath: Path) -> dict:
         active["home"] = ' class="active"'
     elif name in BDD_PAGES or (parts and parts[0] in BDD_DIRS):
         active["bdd"] = ' class="active"'
-    elif name in SERVICE_PAGES:
+    elif name in SERVICE_PAGES or (parts and parts[0] in SERVICE_DIRS):
         active["services"] = ' class="active"'
     elif name in ABOUT_PAGES:
         active["about"] = ' class="active"'
@@ -64,9 +65,10 @@ def build_header(prefix: str, active: dict) -> str:
                   <li><a href="{p}combo.html">Медосмотр + Техконтроль</a></li>
                   <li><a href="{p}bdd.html">Специалист по БДД</a></li>
                   <li><a href="{p}dispetcher.html">Ведение путевой документации</a></li>
+                  <li><a href="/epl/">Электронные путевые листы</a></li>
                 </ul>
               </li>
-              <li><a href="{p}gsm-calculator/">Калькулятор ГСМ</a></li>
+              <li><a href="{p}gsm/">Калькулятор ГСМ</a></li>
               <li{active['bdd']}><a href="#">Всё о БДД</a>
                 <ul class="dropdown">
                   <li><a href="{p}faq.html">Узнать больше</a></li>
@@ -132,7 +134,8 @@ def build_footer(prefix: str) -> str:
               <li><a href="{p}combo.html">Медосмотр + техконтроль</a></li>
               <li><a href="{p}bdd.html">Специалист по БДД</a></li>
               <li><a href="{p}dispetcher.html">Ведение путевой документации</a></li>
-              <li><a href="{p}gsm-calculator/">Калькулятор ГСМ</a></li>
+              <li><a href="/epl/">Электронные путевые листы</a></li>
+              <li><a href="{p}gsm/">Калькулятор ГСМ</a></li>
             </ul>
             <a href="https://predreis.online" class="pr-footer__online-badge" target="_blank" rel="noopener">
               <img src="{p}img/logo-predreis-online.png" alt="ПРЕДРЕЙС ONLINE">

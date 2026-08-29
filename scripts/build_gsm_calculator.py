@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build GSM calculator and deploy into gsm-calculator/."""
+"""Build GSM calculator and deploy into gsm/."""
 
 import re
 import shutil
@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "_epl_calc_src"
 SHELL = ROOT / "scripts" / "gsm-calculator-shell.html"
-OUT = ROOT / "gsm-calculator"
+OUT = ROOT / "gsm"
 DIST = SRC / "dist"
 
 
@@ -24,7 +24,7 @@ def main() -> int:
     if not deploy_only:
         print("Building React app…")
         subprocess.run(
-            "npm run build -- --base=/gsm-calculator/",
+            "npm run build -- --base=/gsm/",
             cwd=SRC,
             check=True,
             shell=True,
@@ -44,7 +44,7 @@ def main() -> int:
 
     js_href = js_match.group(1)
     css_href = css_match.group(1)
-    prefix = "/gsm-calculator/"
+    prefix = "/gsm/"
     if js_href.startswith(prefix):
         js_href = js_href[len(prefix) :]
     if css_href.startswith(prefix):

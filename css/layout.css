@@ -337,6 +337,72 @@
   max-width: 960px;
 }
 
+/* ===== EPL PAGE ===== */
+.page-epl .post-wrapper-top .breadcrumb,
+.page-epl .post-wrapper-top .breadcrumb a,
+.page-epl .post-wrapper-top .breadcrumb > li + li:before {
+  color: #1C1F41;
+}
+
+.page-epl .post-wrapper-top h2 {
+  color: #1C1F41;
+}
+
+.page-epl .portfolio_details .details_section h3 {
+  color: #1C1F41;
+}
+
+.pr-epl-promo {
+  background: linear-gradient(135deg, #1C1F41 0%, #8285BF 100%);
+  color: #fff;
+  padding: 28px 24px;
+  border-radius: 6px;
+  margin: 24px 0;
+  text-align: center;
+}
+
+.pr-epl-promo h3 {
+  color: #fff;
+  margin: 0 0 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.pr-epl-promo p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.pr-epl-platform {
+  margin-top: 24px;
+}
+
+.pr-epl-platform__inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.pr-epl-platform__logo img {
+  max-height: 72px;
+  width: auto;
+}
+
+.pr-epl-platform__text h3 {
+  color: #1C1F41;
+  margin-top: 0;
+}
+
+.pr-epl-platform__text p {
+  margin-bottom: 16px;
+}
+
+.page-epl .item_price h3 span:last-child {
+  font-size: 28px;
+  line-height: 1.2;
+}
+
 /* ===== HERO INTRO (главная) ===== */
 #intro {
   position: relative;
