@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { ВидСообщения, ВидТоплива, ВходныеДанные, Заправка, РезультатРасчёта, ТипТС } from './types';
-import { parseISODate } from './calc';
+import { parseISODate, toISODate } from './calc';
 import { calculateSmart } from './api';
 import { downloadSheetsPdf } from './pdfExport';
 
@@ -10,7 +10,7 @@ const jsDayToMonFirst = (jsDay: number) => (jsDay === 0 ? 6 : jsDay - 1);
 function todayISO(offsetDays = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10);
+  return toISODate(d);
 }
 
 function emptyRefuel(): Заправка {
@@ -72,7 +72,7 @@ function buildInput(state: DemoState): ВходныеДанные {
     const to = parseISODate(state.периодПо);
     for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
       if (state.будниДни.has(jsDayToMonFirst(d.getDay()))) {
-        дни.add(d.toISOString().slice(0, 10));
+        дни.add(toISODate(d));
       }
     }
   }
@@ -281,7 +281,11 @@ export function DemoApp() {
                   type="button"
                   key={label}
                   className={`weekday-btn${state.будниДни.has(idx) ? ' active' : ''}`}
-                  onClick={() => toggleWeekday(idx)}
+                  aria-pressed={state.будниДни.has(idx)}
+                  onClick={(e) => {
+                    toggleWeekday(idx);
+                    e.currentTarget.blur();
+                  }}
                 >
                   {label}
                 </button>
