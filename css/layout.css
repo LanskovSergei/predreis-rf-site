@@ -419,29 +419,19 @@
 #intro {
   position: relative;
   width: 100%;
-  aspect-ratio: 1920 / 780;
-  max-height: 780px;
+  height: clamp(420px, 40.625vw, 780px);
   padding: 0;
   display: block;
   overflow: hidden;
   background-color: #01004c;
-}
-
-.pr-intro__bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center;
-  display: block;
-  z-index: 0;
-  pointer-events: none;
+  background-image: url('../img/intro-bg.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
 }
 
 #intro .pr-intro__container {
-  position: absolute;
-  inset: 0;
+  position: relative;
   z-index: 1;
   max-width: none;
   width: 100%;
@@ -451,16 +441,18 @@
 }
 
 #intro .pr-intro__content {
-  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 38%) minmax(0, 30%) minmax(0, 1fr);
+  column-gap: clamp(16px, 2vw, 40px);
+  align-content: start;
   width: 100%;
   height: 100%;
+  padding: clamp(36px, 5.5vw, 72px) var(--pr-gutter) 0;
+  box-sizing: border-box;
 }
 
 #intro .pr-intro__content h1 {
-  position: absolute;
-  top: 9.2%;
-  left: var(--pr-gutter);
-  width: min(36%, 690px);
+  grid-column: 1;
   color: #ffffff;
   font-size: clamp(22px, 2.2vw, 42px);
   line-height: 1.45;
@@ -472,10 +464,7 @@
 }
 
 #intro .pr-intro__content p {
-  position: absolute;
-  top: 9.2%;
-  left: 41.5%;
-  width: min(28%, 540px);
+  grid-column: 2;
   color: #ffffff;
   font-size: clamp(14px, 0.95vw, 18px);
   line-height: 1.55;
@@ -485,15 +474,8 @@
 }
 
 @media (max-width: 992px) {
-  #intro .pr-intro__content h1 {
-    width: 46%;
-    font-size: clamp(20px, 2.8vw, 32px);
-  }
-
-  #intro .pr-intro__content p {
-    left: 50%;
-    width: 34%;
-    font-size: 14px;
+  #intro .pr-intro__content {
+    grid-template-columns: minmax(0, 44%) minmax(0, 36%) minmax(0, 1fr);
   }
 }
 
@@ -503,28 +485,13 @@
   }
 
   #intro {
-    aspect-ratio: auto;
     height: auto;
     min-height: 420px;
-    max-height: none;
+    background-position: 42% center;
   }
 
-  .pr-intro__bg {
-    object-fit: cover;
-    object-position: 42% center;
-  }
-
-  #intro .pr-intro__content h1,
-  #intro .pr-intro__content p {
-    position: relative;
-    top: auto;
-    left: auto;
-    width: auto;
-  }
-
-  #intro .pr-intro__container {
-    position: relative;
-    inset: auto;
+  #intro .pr-intro__content {
+    display: block;
     padding: 50px 20px;
   }
 
