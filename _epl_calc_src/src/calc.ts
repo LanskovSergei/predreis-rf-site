@@ -125,7 +125,29 @@ export function computeConsumption(input: ВходныеДанные, periodStar
   }
 
   const manual = num(input.среднийРасход);
-  const base = manual > 0 ? manual : DEFAULT_BASE_CONSUMPTION[input.видТоплива] ?? 10;
+
+  let base: number;
+  let baseNote: 'manual' | 'estimated' | 'default';
+
+  if (manual > 0) {
+    base = manual;
+    baseNote = 'manual';
+  } else {
+    const odoStart = num(input.одометрНаНачало);
+    const odoEnd = num(input.одометрНаКонец);
+    const distance = odoEnd - odoStart;
+    const totalRefueled = input.заправки.reduce((sum, r) => sum + num(r.объём), 0);
+
+    if (input.одометрНаКонец !== '' && distance > 0 && totalRefueled > 0) {
+      // Пользователь не знает расход — считаем его сами по факту: сколько залито
+      // за период (заправки) на пройденный пробег (одометр на конец − на начало).
+      base = round((totalRefueled / distance) * 100, 2);
+      baseNote = 'estimated';
+    } else {
+      base = DEFAULT_BASE_CONSUMPTION[input.видТоплива] ?? 10;
+      baseNote = 'default';
+    }
+  }
 
   const applied: СводкаРасхода['applied'] = [];
   let multiplier = 1;
@@ -153,9 +175,11 @@ export function computeConsumption(input: ВходныеДанные, periodStar
     base,
     applied,
     note:
-      manual > 0
+      baseNote === 'manual'
         ? 'База — ручной средний расход, применены коэффициенты.'
-        : `База — норматив по умолчанию для «${input.видТоплива}», применены коэффициенты.`,
+        : baseNote === 'estimated'
+          ? 'База — расход, вычисленный по факту (пробег по одометру и объём заправок за период), применены коэффициенты.'
+          : `База — норматив по умолчанию для «${input.видТоплива}», применены коэффициенты.`,
   };
 }
 

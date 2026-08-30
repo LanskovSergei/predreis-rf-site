@@ -230,6 +230,29 @@ button:focus-visible {
   text-underline-offset: 3px;
 }
 
+.driver-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--gsm-border);
+}
+
+.driver-row:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.driver-row__head {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.driver-row__head .field {
+  flex: 1;
+}
+
 .refuels {
   display: flex;
   flex-direction: column;

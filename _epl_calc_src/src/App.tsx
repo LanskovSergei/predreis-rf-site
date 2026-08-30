@@ -17,6 +17,15 @@ function emptyRefuel(): Заправка {
   return { дата: todayISO(), время: '08:00', объём: '' };
 }
 
+interface ДемоВодитель {
+  фио: string;
+  будниДни: Set<number>;
+}
+
+function emptyDriver(): ДемоВодитель {
+  return { фио: '', будниДни: new Set([0, 1, 2, 3, 4]) };
+}
+
 interface DemoState {
   марка: string;
   модель: string;
@@ -25,8 +34,9 @@ interface DemoState {
   объёмБака: number | '';
   периодС: string;
   периодПо: string;
-  будниДни: Set<number>;
+  водители: ДемоВодитель[];
   одометрНаНачало: number | '';
+  одометрНаКонец: number | '';
   остатокНаНачало: number | '';
   заправки: Заправка[];
   старше10лет: boolean;
@@ -34,6 +44,7 @@ interface DemoState {
   спецтехника: boolean;
   среднийРасход: number | '';
   видСообщения: ВидСообщения;
+  срокРейсаДней: number | '';
 }
 
 function initialState(): DemoState {
@@ -45,8 +56,9 @@ function initialState(): DemoState {
     объёмБака: 70,
     периодС: todayISO(-13),
     периодПо: todayISO(),
-    будниДни: new Set([0, 1, 2, 3, 4]),
+    водители: [{ фио: '', будниДни: new Set([0, 1, 2, 3, 4]) }],
     одометрНаНачало: '',
+    одометрНаКонец: '',
     остатокНаНачало: 15,
     заправки: [
       { дата: todayISO(-12), время: '08:15', объём: 35 },
@@ -58,6 +70,7 @@ function initialState(): DemoState {
     спецтехника: false,
     среднийРасход: '',
     видСообщения: 'городское',
+    срокРейсаДней: '',
   };
 }
 
@@ -65,17 +78,21 @@ function numField(value: string): number | '' {
   return value === '' ? '' : Number(value);
 }
 
-function buildInput(state: DemoState): ВходныеДанные {
+function driverDays(state: DemoState, будниДни: Set<number>): Set<string> {
   const дни = new Set<string>();
   if (state.периодС && state.периодПо) {
     const from = parseISODate(state.периодС);
     const to = parseISODate(state.периодПо);
     for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-      if (state.будниДни.has(jsDayToMonFirst(d.getDay()))) {
+      if (будниДни.has(jsDayToMonFirst(d.getDay()))) {
         дни.add(toISODate(d));
       }
     }
   }
+  return дни;
+}
+
+function buildInput(state: DemoState): ВходныеДанные {
 
   return {
     марка: state.марка,
@@ -90,10 +107,14 @@ function buildInput(state: DemoState): ВходныеДанные {
     периодС: state.периодС,
     периодПо: state.периодПо,
     видСообщения: state.видСообщения,
-    срокРейсаДней: '',
+    срокРейсаДней: state.срокРейсаДней,
     одометрНаНачало: state.одометрНаНачало,
+    одометрНаКонец: state.одометрНаКонец,
     остатокНаНачало: state.остатокНаНачало,
-    водители: [{ фио: 'Водитель', дни }],
+    водители: state.водители.map((v, i) => ({
+      фио: v.фио.trim() || `Водитель ${i + 1}`,
+      дни: driverDays(state, v.будниДни),
+    })),
     заправки: state.заправки,
   };
 }
@@ -108,7 +129,11 @@ function validate(state: DemoState): string[] {
   if (state.остатокНаНачало === '' || Number(state.остатокНаНачало) < 0) {
     errs.push('Укажите остаток топлива в баке на начало периода.');
   }
-  if (state.будниДни.size === 0) errs.push('Отметьте хотя бы один рабочий день недели.');
+  if (state.водители.length === 0) errs.push('Добавьте хотя бы одного водителя.');
+  state.водители.forEach((v, i) => {
+    if (!v.фио.trim()) errs.push(`Укажите ФИО водителя №${i + 1}.`);
+    if (v.будниДни.size === 0) errs.push(`Отметьте рабочие дни для водителя №${i + 1}.`);
+  });
   if (state.заправки.filter((r) => r.дата && r.объём !== '').length === 0) {
     errs.push('Добавьте хотя бы одну заправку с чека.');
   }
@@ -135,15 +160,34 @@ export function DemoApp() {
   const upd = <K extends keyof DemoState>(key: K, value: DemoState[K]) =>
     setState((s) => ({ ...s, [key]: value }));
 
-  const toggleWeekday = (idx: number) =>
-    setState((s) => {
-      const next = new Set(s.будниДни);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return { ...s, будниДни: next };
-    });
+  const toggleWeekday = (driverIdx: number, dayIdx: number) =>
+    setState((s) => ({
+      ...s,
+      водители: s.водители.map((v, i) => {
+        if (i !== driverIdx) return v;
+        const next = new Set(v.будниДни);
+        if (next.has(dayIdx)) next.delete(dayIdx);
+        else next.add(dayIdx);
+        return { ...v, будниДни: next };
+      }),
+    }));
 
-  const setAllWeekdays = () => setState((s) => ({ ...s, будниДни: new Set([0, 1, 2, 3, 4]) }));
+  const setAllWeekdays = (driverIdx: number) =>
+    setState((s) => ({
+      ...s,
+      водители: s.водители.map((v, i) => (i === driverIdx ? { ...v, будниДни: new Set([0, 1, 2, 3, 4]) } : v)),
+    }));
+
+  const updDriverName = (driverIdx: number, фио: string) =>
+    setState((s) => ({
+      ...s,
+      водители: s.водители.map((v, i) => (i === driverIdx ? { ...v, фио } : v)),
+    }));
+
+  const addDriver = () => setState((s) => ({ ...s, водители: [...s.водители, emptyDriver()] }));
+
+  const removeDriver = (driverIdx: number) =>
+    setState((s) => ({ ...s, водители: s.водители.filter((_, i) => i !== driverIdx) }));
 
   const updRefuel = (idx: number, patch: Partial<Заправка>) =>
     setState((s) => ({
@@ -154,6 +198,8 @@ export function DemoApp() {
   const addRefuel = () => setState((s) => ({ ...s, заправки: [...s.заправки, emptyRefuel()] }));
   const removeRefuel = (idx: number) =>
     setState((s) => ({ ...s, заправки: s.заправки.filter((_, i) => i !== idx) }));
+
+  const isMultiDayTrip = state.видСообщения === 'междугородное' || state.видСообщения === 'международное';
 
   const todayStamp = useMemo(
     () =>
@@ -262,7 +308,7 @@ export function DemoApp() {
 
         <section className="ticket-section">
           <h2>
-            <span className="section-label">Период и рабочие дни</span>
+            <span className="section-label">Период</span>
           </h2>
           <div className="grid grid-dates">
             <div className="field">
@@ -274,27 +320,62 @@ export function DemoApp() {
               <input type="date" value={state.периодПо} onChange={(e) => upd('периодПо', e.target.value)} />
             </div>
           </div>
-          <div className="weekdays">
-            <div className="weekday-row">
-              {WEEKDAY_LABELS.map((label, idx) => (
-                <button
-                  type="button"
-                  key={label}
-                  className={`weekday-btn${state.будниДни.has(idx) ? ' active' : ''}`}
-                  aria-pressed={state.будниДни.has(idx)}
-                  onClick={(e) => {
-                    toggleWeekday(idx);
-                    e.currentTarget.blur();
-                  }}
-                >
-                  {label}
+        </section>
+
+        <div className="perforation" aria-hidden="true" />
+
+        <section className="ticket-section">
+          <h2>
+            <span className="section-label">Водители и их рабочие дни</span>
+          </h2>
+          {state.водители.map((driver, driverIdx) => (
+            <div className="driver-row" key={driverIdx}>
+              <div className="driver-row__head">
+                <div className="field">
+                  <label>ФИО водителя</label>
+                  <input
+                    value={driver.фио}
+                    onChange={(e) => updDriverName(driverIdx, e.target.value)}
+                    placeholder="Напр., Иванов И. И."
+                  />
+                </div>
+                {state.водители.length > 1 && (
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => removeDriver(driverIdx)}
+                    aria-label="Удалить водителя"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <div className="weekdays">
+                <div className="weekday-row">
+                  {WEEKDAY_LABELS.map((label, dayIdx) => (
+                    <button
+                      type="button"
+                      key={label}
+                      className={`weekday-btn${driver.будниДни.has(dayIdx) ? ' active' : ''}`}
+                      aria-pressed={driver.будниДни.has(dayIdx)}
+                      onClick={(e) => {
+                        toggleWeekday(driverIdx, dayIdx);
+                        e.currentTarget.blur();
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="link-btn" onClick={() => setAllWeekdays(driverIdx)}>
+                  Все будние дни
                 </button>
-              ))}
+              </div>
             </div>
-            <button type="button" className="link-btn" onClick={setAllWeekdays}>
-              Все будние дни
-            </button>
-          </div>
+          ))}
+          <button type="button" className="link-btn" onClick={addDriver}>
+            + Добавить водителя
+          </button>
         </section>
 
         <div className="perforation" aria-hidden="true" />
@@ -344,7 +425,7 @@ export function DemoApp() {
               <div className="grid">
                 <div className="field">
                   <label>
-                    Средний расход, л/100км <span className="hint">(если не знаете — посчитаем по нормативу)</span>
+                    Средний расход, л/100км <span className="hint">(если не знаете — укажите одометр на конец периода, посчитаем сами)</span>
                   </label>
                   <input
                     type="number"
@@ -367,15 +448,44 @@ export function DemoApp() {
                   />
                 </div>
                 <div className="field">
+                  <label>
+                    Показания одометра на конец, км <span className="hint">(нужно для авторасчёта расхода)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={state.одометрНаКонец}
+                    onChange={(e) => upd('одометрНаКонец', numField(e.target.value))}
+                  />
+                </div>
+                <div className="field">
                   <label>Вид сообщения</label>
                   <select value={state.видСообщения} onChange={(e) => upd('видСообщения', e.target.value as ВидСообщения)}>
                     <option value="городское">Городское</option>
                     <option value="пригородное">Пригородное</option>
+                    <option value="междугородное">Междугородное</option>
+                    <option value="международное">Международное</option>
                   </select>
                 </div>
+                {isMultiDayTrip && (
+                  <div className="field">
+                    <label>
+                      Срок рейса, дней <span className="hint">(на весь рейс, а не по дням)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={state.срокРейсаДней}
+                      onChange={(e) => upd('срокРейсаДней', numField(e.target.value))}
+                      placeholder="Напр., 3"
+                    />
+                  </div>
+                )}
               </div>
               <div className="checks">
                 <label className="checkbox-row">
+
                   <input type="checkbox" checked={state.старше10лет} onChange={(e) => upd('старше10лет', e.target.checked)} />
                   Авто старше 10 лет
                 </label>
