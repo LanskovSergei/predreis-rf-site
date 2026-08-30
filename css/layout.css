@@ -224,6 +224,18 @@
   color: #1C1F41;
 }
 
+.page-about .section4 .owl-carousel .item a {
+  cursor: pointer;
+  border: 1px solid #e8e8ef;
+  background: #fff;
+}
+
+.page-about .section4 .owl-carousel .item a img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* ===== FAQ PAGE ===== */
 .page-faq .post-wrapper-top .breadcrumb,
 .page-faq .post-wrapper-top .breadcrumb a,
