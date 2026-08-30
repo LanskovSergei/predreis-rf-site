@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Replace header and footer in all HTML files with new layout."""
 
 import re
@@ -85,7 +85,7 @@ def build_header(prefix: str, active: dict) -> str:
             </ul>
           </div>
         </div>
-        <a href="https://predreis.online" class="pr-header__online" target="_blank" rel="noopener" title="ПРЕДРЕЙС ONLINE">
+        <a href="https://predreis-online.ru/" class="pr-header__online" target="_blank" rel="noopener" title="ПРЕДРЕЙС ONLINE">
           <img src="{p}img/logo-icon.png?v=4" alt="ПРЕДРЕЙС ONLINE" width="40" height="40">
         </a>
         <div class="pr-header__contacts">
