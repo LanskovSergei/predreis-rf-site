@@ -33,8 +33,10 @@ export const MIN_CLOSING_FUEL = 10; // литров
 
 /** Базовый расход по умолчанию, если пользователь не задал средний расход. */
 const DEFAULT_BASE_CONSUMPTION: Record<ВидТоплива, number> = {
-  бензин: 11,
-  дизель: 9,
+  ДТ: 9,
+  'Аи-92': 10,
+  'Аи-95': 10.5,
+  'Аи-100': 11.5,
 };
 
 /**
@@ -138,10 +140,16 @@ export function computeConsumption(input: ВходныеДанные, periodStar
     const distance = odoEnd - odoStart;
     const totalRefueled = input.заправки.reduce((sum, r) => sum + num(r.объём), 0);
 
-    if (input.одометрНаКонец !== '' && distance > 0 && totalRefueled > 0) {
-      // Пользователь не знает расход — считаем его сами по факту: сколько залито
-      // за период (заправки) на пройденный пробег (одометр на конец − на начало).
-      base = round((totalRefueled / distance) * 100, 2);
+    // Точнее: фактически сожжённое топливо = остаток на начало + залито − остаток
+    // на конец. Если пользователь не указал остатки — приближённо считаем, что
+    // всё залитое за период топливо и было сожжено (Σ заправок).
+    const residualStart = num(input.остатокНаНачало);
+    const residualEnd = num(input.остатокНаКонец);
+    const hasResiduals = input.остатокНаНачало !== '' && input.остатокНаКонец !== '';
+    const totalBurned = hasResiduals ? residualStart + totalRefueled - residualEnd : totalRefueled;
+
+    if (input.одометрНаКонец !== '' && distance > 0 && totalBurned > 0) {
+      base = round((totalBurned / distance) * 100, 2);
       baseNote = 'estimated';
     } else {
       base = DEFAULT_BASE_CONSUMPTION[input.видТоплива] ?? 10;

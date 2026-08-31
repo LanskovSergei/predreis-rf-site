@@ -341,6 +341,181 @@ button:focus-visible {
   cursor: default;
 }
 
+/* Wizard: прогресс по шагам */
+.wizard-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 4px;
+  margin: 14px 0 4px;
+}
+
+.wizard-progress__step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gsm-muted);
+  opacity: 0.55;
+}
+
+.wizard-progress__step.active {
+  opacity: 1;
+  color: var(--gsm-ink);
+  font-weight: 700;
+}
+
+.wizard-progress__step.done {
+  opacity: 0.85;
+}
+
+.wizard-progress__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gsm-border);
+  color: var(--gsm-ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.wizard-progress__step.active .wizard-progress__num,
+.wizard-progress__step.done .wizard-progress__num {
+  background: var(--gsm-accent);
+  color: #fff;
+}
+
+.wizard-step-label {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--gsm-muted);
+}
+
+.step-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--gsm-muted);
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.wizard-actions .btn-calc {
+  flex: 1;
+}
+
+.btn-secondary {
+  border: 1px solid var(--gsm-border);
+  border-radius: 2px;
+  background: #fff;
+  color: var(--gsm-ink);
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--gsm-accent);
+  color: var(--gsm-accent);
+}
+
+/* Tooltip "?" */
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gsm-border);
+  color: var(--gsm-ink);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+  vertical-align: middle;
+}
+
+/* Мини-календарь для выбора рабочих дней водителя */
+.mini-calendar {
+  max-width: 320px;
+  margin: 10px 0;
+  border: 1px solid var(--gsm-border);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.mini-calendar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.mini-calendar__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gsm-ink);
+  text-transform: capitalize;
+}
+
+.mini-calendar__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.mini-calendar__weekdays span {
+  text-align: center;
+  font-size: 11px;
+  color: var(--gsm-muted);
+}
+
+.mini-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.mini-calendar__cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--gsm-ink);
+  cursor: pointer;
+}
+
+.mini-calendar__cell:hover {
+  background: var(--gsm-border);
+}
+
+.mini-calendar__cell.active {
+  background: var(--gsm-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.mini-calendar__cell--empty {
+  cursor: default;
+  pointer-events: none;
+}
+
+.disclaimer--top {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
 .result-zone {
   margin-top: 32px;
   scroll-margin-top: 24px;
