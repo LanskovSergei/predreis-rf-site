@@ -333,6 +333,17 @@ export function DemoApp() {
   const removeRefuel = (idx: number) =>
     setState((s) => ({ ...s, заправки: s.заправки.filter((_, i) => i !== idx) }));
 
+  const fillRefuelsFromCalendar = () =>
+    setState((s) => {
+      const existingDates = new Set(s.заправки.map((r) => r.дата));
+      const allDriverDays = new Set<string>();
+      s.водители.forEach((v) => v.дни.forEach((d) => allDriverDays.add(d)));
+      const newDates = [...allDriverDays].filter((d) => !existingDates.has(d)).sort();
+      if (newDates.length === 0) return s;
+      const drafts: Заправка[] = newDates.map((дата) => ({ дата, время: '08:00', объём: '' }));
+      return { ...s, заправки: [...s.заправки, ...drafts].sort((a, b) => a.дата.localeCompare(b.дата)) };
+    });
+
   const isMultiDayTrip = state.видСообщения === 'междугородное' || state.видСообщения === 'международное';
 
   const todayStamp = useMemo(
@@ -611,6 +622,13 @@ export function DemoApp() {
               <span className="section-label">Заправки</span>
             </h2>
             <p className="step-hint">Чеки с автозаправок — введите данные с каждого чека отдельной строкой.</p>
+            <button type="button" className="link-btn" onClick={fillRefuelsFromCalendar}>
+              + Подставить строки по рабочим дням водителей
+            </button>
+            <p className="step-hint">
+              Появятся черновые строки на каждый отмеченный рабочий день — впишите литры по чеку или уберите
+              лишние.
+            </p>
             <div className="refuels">
               <div className="refuel-row refuel-row-head">
                 <span>Дата</span>
