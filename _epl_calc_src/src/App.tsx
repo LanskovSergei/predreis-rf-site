@@ -258,6 +258,7 @@ export function DemoApp() {
   const [state, setState] = useState<DemoState>(initialState);
   const [step, setStep] = useState(1);
   const [result, setResult] = useState<РезультатРасчёта | null>(null);
+  const [formCollapsed, setFormCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -355,10 +356,17 @@ export function DemoApp() {
     try {
       const r = await calculateSmart(buildInput(state));
       setResult(r);
+      if (r.листы.length > 0) setFormCollapsed(true);
     } finally {
       setLoading(false);
       setTimeout(() => document.getElementById('demo-result')?.scrollIntoView({ behavior: 'smooth' }), 0);
     }
+  };
+
+  const onEditData = () => {
+    setFormCollapsed(false);
+    setResult(null);
+    setTimeout(() => document.querySelector('.ticket')?.scrollIntoView({ behavior: 'smooth' }), 0);
   };
 
   const onDownloadPdf = async () => {
@@ -386,6 +394,19 @@ export function DemoApp() {
         </p>
       </div>
 
+      {formCollapsed ? (
+        <div className="ticket ticket--collapsed">
+          <div className="ticket-head">
+            <span className="ticket-title">
+              Данные для расчёта: {state.марка} {state.модель} · {state.водители.length} вод. ·{' '}
+              {state.периодС.split('-').reverse().join('.')}–{state.периодПо.split('-').reverse().join('.')}
+            </span>
+            <button type="button" className="link-btn" onClick={onEditData}>
+              Изменить данные
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="ticket" role="form" aria-label="Калькулятор ГСМ">
         <div className="ticket-head">
           <span className="ticket-title">Данные для расчёта</span>
@@ -739,6 +760,7 @@ export function DemoApp() {
           )}
         </div>
       </div>
+      )}
 
       <div id="demo-result" className="result-zone">
         {result && result.предупреждения.length > 0 && (

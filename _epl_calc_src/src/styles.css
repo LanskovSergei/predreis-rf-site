@@ -59,6 +59,23 @@
   padding: 0 28px 24px;
 }
 
+.ticket--collapsed {
+  padding: 0 20px;
+}
+
+.ticket--collapsed .ticket-head {
+  padding: 16px 0;
+  align-items: center;
+}
+
+.ticket--collapsed .ticket-title {
+  text-transform: none;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--gsm-muted);
+}
+
 .ticket-head {
   display: flex;
   justify-content: space-between;

@@ -94,6 +94,11 @@ export async function calculateViaApi(input: ВходныеДанные): Promis
  * предупреждает об этом в результате.
  */
 export async function calculateSmart(input: ВходныеДанные): Promise<РезультатРасчёта> {
+  if (!apiBase()) {
+    // Бэкенд для этой (Light) версии калькулятора не предусмотрен — считаем
+    // локально молча, это штатный режим, а не сбой, о котором нужно предупреждать.
+    return calculateOffline(input);
+  }
   try {
     return await calculateViaApi(input);
   } catch (err) {
@@ -101,7 +106,8 @@ export async function calculateSmart(input: ВходныеДанные): Promise
       // Ошибка валидации на бэкенде — это про данные, а не про доступность сервера.
       return { листы: [], предупреждения: err.detail, расход: null };
     }
-    // Сеть/CORS/сервер не поднят/не настроен VITE_API_URL — тихий откат на офлайн-движок.
+    // Бэкенд был настроен (VITE_API_URL задан), но не отвечает — вот это уже
+    // достойно предупреждения: тихий откат на офлайн-движок.
     const offline = calculateOffline(input);
     return {
       ...offline,

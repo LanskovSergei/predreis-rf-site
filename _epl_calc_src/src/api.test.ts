@@ -143,10 +143,10 @@ describe('calculateSmart', () => {
     expect(result.предупреждения.some((w) => w.includes('Бэкенд недоступен'))).toBe(true);
   });
 
-  it('откатывается на офлайн-движок, если VITE_API_URL не задан вовсе', async () => {
+  it('считает офлайн без предупреждения, если VITE_API_URL не задан вовсе (Light-версия)', async () => {
     __setApiBaseForTests(undefined);
     const result = await calculateSmart(baseInput());
     expect(result.листы.length).toBeGreaterThan(0);
-    expect(result.предупреждения.some((w) => w.includes('Бэкенд недоступен'))).toBe(true);
+    expect(result.предупреждения.some((w) => w.includes('Бэкенд недоступен'))).toBe(false);
   });
 });
