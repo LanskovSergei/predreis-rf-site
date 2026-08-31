@@ -18,7 +18,9 @@ import type {
   ВидСообщения,
   ТипТС,
   ВидТоплива,
+  ФормаПЛ,
 } from './types';
+import { формаПоТипуТС } from './formPl';
 
 // ------- Константы и справочные значения -------
 
@@ -261,6 +263,7 @@ export function calculate(input: ВходныеДанные): Результат
   if (tankVolume <= 0) warnings.push('Не задан объём бака ТС.');
 
   const maxDailyKm = MAX_DAILY_KM[input.типТС] ?? MAX_DAILY_KM.легковой;
+  const формаПЛ: ФормаПЛ = input.формаПЛ ?? формаПоТипуТС(input.типТС);
 
   const shifts = buildShifts(input);
   if (shifts.length === 0) {
@@ -358,6 +361,7 @@ export function calculate(input: ВходныеДанные): Результат
 
     листы.push({
       номер: i + 1,
+      формаПЛ,
       выпуск: formatDateTime(departure),
       возвращение: formatDateTime(returnDt),
       водитель: shift.driver,

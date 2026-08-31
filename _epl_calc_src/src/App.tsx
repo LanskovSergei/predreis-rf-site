@@ -3,6 +3,7 @@ import type { ВидСообщения, ВидТоплива, ВходныеДа
 import { parseISODate, toISODate } from './calc';
 import { calculateSmart } from './api';
 import { downloadSheetsPdf } from './pdfExport';
+import { формаПоТипуТС, заголовокПутевогоЛиста, названиеФормы, поляФормы } from './formPl';
 
 const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const jsDayToMonFirst = (jsDay: number) => (jsDay === 0 ? 6 : jsDay - 1);
@@ -115,6 +116,7 @@ function buildInput(state: DemoState): ВходныеДанные {
     марка: state.марка,
     модель: state.модель,
     типТС: state.типТС,
+    формаПЛ: формаПоТипуТС(state.типТС),
     видТоплива: state.видТоплива,
     объёмБака: state.объёмБака,
     среднийРасход: state.среднийРасход,
@@ -491,6 +493,9 @@ export function DemoApp() {
                   <option value="легковой">Легковой</option>
                   <option value="грузовой">Грузовой</option>
                 </select>
+                <p className="form-badge" aria-live="polite">
+                  Форма путевого листа: <strong>{названиеФормы(формаПоТипуТС(state.типТС))}</strong>
+                </p>
               </div>
             </div>
             <div className="checks">
@@ -816,7 +821,9 @@ export function DemoApp() {
               {result.листы.map((л) => (
                 <div className="stub" key={л.номер}>
                   <div className="stub-head">
-                    <span>ПЛ № {л.номер}</span>
+                    <span>
+                      ПЛ № {л.номер} · {названиеФормы(л.формаПЛ ?? формаПоТипуТС(state.типТС))}
+                    </span>
                     <span className="mono">{л.водитель}</span>
                   </div>
                   <div className="stub-row">
@@ -892,71 +899,41 @@ export function DemoApp() {
 
       {result && result.листы.length > 0 && (
         <div className="pdf-print-host" ref={pdfHostRef} aria-hidden="true">
-          {result.листы.map((л) => (
+          {result.листы.map((л) => {
+            const forma = л.формаПЛ ?? формаПоТипуТС(state.типТС);
+            const input = buildInput(state);
+            const rows = поляФормы(forma, { input, лист: л });
+            return (
             <div className="pdf-sheet" key={`pdf-${л.номер}`}>
               <div className="pdf-sheet__brand">ПРЕДРЕЙС · Калькулятор ГСМ</div>
-              <h1 className="pdf-sheet__title">Путевой лист № {л.номер}</h1>
+              <h1 className="pdf-sheet__title">{заголовокПутевогоЛиста(forma, л.номер)}</h1>
               <p className="pdf-sheet__subtitle">
                 {state.марка} {state.модель} · {formatVehicleType(state.типТС)} · {formatFuel(state.видТоплива)}
               </p>
               <div className="pdf-sheet__meta">
                 <div>
-                  <span>Водитель: </span>
-                  <strong>{л.водитель}</strong>
+                  <span>Форма: </span>
+                  <strong>{названиеФормы(forma)}</strong>
                 </div>
                 <div>
                   <span>Дата расчёта: </span>
                   <strong>{todayStamp}</strong>
                 </div>
-                <div>
-                  <span>Выпуск: </span>
-                  <strong>{л.выпуск}</strong>
-                </div>
-                <div>
-                  <span>Возвращение: </span>
-                  <strong>{л.возвращение}</strong>
-                </div>
               </div>
               <table>
                 <thead>
                   <tr>
-                    <th>Показатель</th>
+                    <th>Поле формы</th>
                     <th>Значение</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>Одометр при выдаче, км</td>
-                    <td>{л.одометрВыдача}</td>
-                  </tr>
-                  <tr>
-                    <td>Одометр при возврате, км</td>
-                    <td>{л.одометрЗакрытие}</td>
-                  </tr>
-                  <tr>
-                    <td>Пробег, км</td>
-                    <td>{л.пробег}</td>
-                  </tr>
-                  <tr>
-                    <td>Остаток ГСМ при выдаче, л</td>
-                    <td>{л.остатокВыдача}</td>
-                  </tr>
-                  <tr>
-                    <td>Остаток ГСМ при возврате, л</td>
-                    <td>{л.остатокЗакрытие}</td>
-                  </tr>
-                  <tr>
-                    <td>Расход по норме, л</td>
-                    <td>{л.расходНорма}</td>
-                  </tr>
-                  <tr>
-                    <td>Расход фактический, л</td>
-                    <td>{л.расходФакт}</td>
-                  </tr>
-                  <tr>
-                    <td>Вид сообщения</td>
-                    <td>{л.видСообщения}</td>
-                  </tr>
+                  {rows.map((row) => (
+                    <tr key={row.label}>
+                      <td>{row.label}</td>
+                      <td>{row.value}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
               <p className="pdf-sheet__note">
@@ -964,7 +941,8 @@ export function DemoApp() {
                 Требуются отметки медицинского осмотра и технического контроля.
               </p>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

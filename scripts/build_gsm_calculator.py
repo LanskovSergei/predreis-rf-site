@@ -49,6 +49,9 @@ def main() -> int:
         js_href = js_href[len(prefix) :]
     if css_href.startswith(prefix):
         css_href = css_href[len(prefix) :]
+    # Paths must be relative to gsm/index.html (assets/…), not site-root /assets/.
+    js_href = js_href.lstrip("/")
+    css_href = css_href.lstrip("/")
     assets_block = (
         f'    <script type="module" crossorigin src="{js_href}"></script>\n'
         f'    <link rel="stylesheet" crossorigin href="{css_href}">'

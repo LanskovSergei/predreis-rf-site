@@ -418,6 +418,20 @@ button:focus-visible {
   color: var(--gsm-muted);
 }
 
+.form-badge {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--gsm-text);
+  background: rgba(0, 120, 212, 0.08);
+  border: 1px solid rgba(0, 120, 212, 0.2);
+  border-radius: 8px;
+}
+
+.form-badge strong {
+  color: var(--gsm-accent);
+}
+
 .wizard-actions {
   display: flex;
   gap: 12px;
