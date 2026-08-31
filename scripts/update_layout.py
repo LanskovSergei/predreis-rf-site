@@ -51,7 +51,7 @@ def build_header(prefix: str, active: dict) -> str:
     <div class="container">
       <div class="pr-header__inner clearfix">
         <a href="{p}index.html" class="pr-header__logo">
-          <img src="{p}img/logo-predreis.png?v=3" alt="ПРЕДРЕЙС — линии безопасности" height="56">
+          <img src="{p}img/logo-predreis.png?v=7" alt="ПРЕДРЕЙС — линии безопасности" height="56">
         </a>
         <div class="pr-header__nav-wrap">
           <div id="nav">
@@ -107,7 +107,7 @@ def build_footer(prefix: str) -> str:
         <div class="row pr-footer__grid">
           <div class="col-lg-4 col-md-4 col-sm-12 pr-footer__about">
             <a href="{p}index.html" class="pr-footer__logo">
-              <img src="{p}img/logo-predreis-footer.png" alt="ПРЕДРЕЙС — линии безопасности">
+              <img src="{p}img/logo-predreis-footer.png?v=3" alt="ПРЕДРЕЙС — линии безопасности">
             </a>
             <p>ООО «ПРЕДРЕЙС» объединяет специалистов и экспертов в области организации мероприятий по безопасности дорожного движения</p>
             <a class="pr-footer__more" href="{p}about.html">Подробнее &rarr;</a>
