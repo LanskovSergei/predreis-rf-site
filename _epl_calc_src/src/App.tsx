@@ -849,17 +849,24 @@ export function DemoApp() {
               ))}
             </div>
 
-            <div className="pro-teaser">
+            <div className="pro-teaser pro-teaser--pro">
               <img src="../img/logo-predreis-online.png" alt="ПРЕДРЕЙС ONLINE" className="pro-teaser__logo pro-teaser__logo--online" />
-              <p>
-                Маршрут построен. Больше возможностей в <strong>PRO-версии</strong> Калькулятора ГСМ для транспортной
-                бухгалтерии и диспетчерских служб.
+              <p className="pro-teaser__eyebrow">Маршрут построен</p>
+              <p className="pro-teaser__heading">
+                Больше возможностей в <strong>PRO-версии</strong> Калькулятора ГСМ
               </p>
-              <p>У нашей клиентской службы уже есть ответы на ваши вопросы. Свяжитесь с нами:</p>
-              <p className="pro-teaser__contacts">
-                <a href="tel:+79250288755">+7 925 028-87-55</a>
-                <a href="mailto:predreis@predreis.online">predreis@predreis.online</a>
+              <p className="pro-teaser__sub">
+                Для транспортной бухгалтерии и диспетчерских служб. У нашей клиентской службы уже есть ответы на
+                ваши вопросы.
               </p>
+              <div className="pro-teaser__cta">
+                <a href="tel:+79250288755" className="pro-teaser__btn">
+                  +7 925 028-87-55
+                </a>
+                <a href="mailto:predreis@predreis.online" className="pro-teaser__btn pro-teaser__btn--ghost">
+                  predreis@predreis.online
+                </a>
+              </div>
             </div>
 
             <p className="disclaimer">
