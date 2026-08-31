@@ -59,6 +59,23 @@
   padding: 0 28px 24px;
 }
 
+.ticket--collapsed {
+  padding: 0 20px;
+}
+
+.ticket--collapsed .ticket-head {
+  padding: 16px 0;
+  align-items: center;
+}
+
+.ticket--collapsed .ticket-title {
+  text-transform: none;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--gsm-muted);
+}
+
 .ticket-head {
   display: flex;
   justify-content: space-between;
@@ -151,7 +168,7 @@ input:focus-visible,
 select:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--gsm-accent);
-  outline-offset: 1px;
+  outline-offset: -2px;
 }
 
 .checks {
@@ -341,6 +358,191 @@ button:focus-visible {
   cursor: default;
 }
 
+/* Wizard: прогресс по шагам */
+.wizard-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 30px;
+  margin: 22px 0 16px;
+  padding-bottom: 4px;
+}
+
+.wizard-progress__step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--gsm-muted);
+  opacity: 0.55;
+}
+
+.wizard-progress__step.active {
+  opacity: 1;
+  color: var(--gsm-ink);
+  font-weight: 700;
+}
+
+.wizard-progress__step.done {
+  opacity: 0.85;
+}
+
+.wizard-progress__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gsm-border);
+  color: var(--gsm-ink);
+  font-size: 12px;
+  font-weight: 700;
+  flex: none;
+}
+
+.wizard-progress__step.active .wizard-progress__num,
+.wizard-progress__step.done .wizard-progress__num {
+  background: var(--gsm-accent);
+  color: #fff;
+}
+
+.wizard-step-label {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--gsm-muted);
+}
+
+.step-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--gsm-muted);
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.wizard-actions .btn-calc {
+  flex: 1;
+}
+
+.btn-secondary {
+  border: 1px solid var(--gsm-border);
+  border-radius: 2px;
+  background: #fff;
+  color: var(--gsm-ink);
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--gsm-accent);
+  color: var(--gsm-accent);
+}
+
+/* Tooltip "?" */
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gsm-border);
+  color: var(--gsm-ink);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+  vertical-align: middle;
+}
+
+/* Мини-календарь для выбора рабочих дней водителя */
+.mini-calendar {
+  max-width: 320px;
+  margin: 10px 0;
+  border: 1px solid var(--gsm-border);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.mini-calendar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.mini-calendar__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gsm-ink);
+  text-transform: capitalize;
+}
+
+.mini-calendar__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-bottom: 4px;
+}
+
+.mini-calendar__weekdays span {
+  text-align: center;
+  font-size: 11px;
+  color: var(--gsm-muted);
+}
+
+.mini-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.mini-calendar__cell {
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--gsm-ink);
+  cursor: pointer;
+}
+
+.mini-calendar__cell:hover {
+  background: var(--gsm-border);
+}
+
+.mini-calendar__cell.active {
+  background: var(--gsm-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.mini-calendar__cell--empty {
+  cursor: default;
+  pointer-events: none;
+}
+
+.disclaimer--top {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
 .result-zone {
   margin-top: 32px;
   scroll-margin-top: 24px;
@@ -461,23 +663,102 @@ button:focus-visible {
   margin-bottom: 10px;
 }
 
+.pro-teaser--pro {
+  padding: 28px;
+  background: linear-gradient(135deg, var(--gsm-accent) 0%, var(--gsm-accent-dark) 100%);
+}
+
 .pro-teaser__logo--online {
   background: #fff;
   padding: 6px 10px;
   border-radius: 4px;
+  margin-bottom: 16px;
 }
 
-.pro-teaser__contacts {
+.pro-teaser__eyebrow {
+  margin: 0 0 6px !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.pro-teaser__heading {
+  margin: 0 0 10px !important;
+  font-size: 19px !important;
+  line-height: 1.4;
+  font-weight: 400;
+  color: #fff !important;
+}
+
+.pro-teaser__heading strong {
+  font-weight: 700;
+}
+
+.pro-teaser--pro strong {
+  color: #fff;
+}
+
+.pro-teaser__sub {
+  margin: 0 0 20px !important;
+  font-size: 14px !important;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.pro-teaser__cta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: 10px;
 }
 
-.pro-teaser__contacts a {
-  color: #fff;
+.pro-teaser__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 18px;
+  border-radius: 2px;
+  font-size: 14px;
   font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
+  background: #fff;
+  color: var(--gsm-accent-dark);
+  transition: background-color 0.12s ease;
+}
+
+.pro-teaser__btn:hover {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.pro-teaser__btn--ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.pro-teaser__btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.pro-teaser--light {
+  background: #fff;
+  color: var(--gsm-ink);
+  border: 1px solid var(--gsm-border);
+  border-left: 4px solid var(--gsm-accent);
+}
+
+.pro-teaser--light p {
+  color: var(--gsm-muted);
+}
+
+.pro-teaser--light strong {
+  color: var(--gsm-ink);
+}
+
+.pro-teaser__link {
+  display: inline-block;
+  color: var(--gsm-accent);
+  font-weight: 700;
 }
 
 .disclaimer {

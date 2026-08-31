@@ -7,7 +7,7 @@ function baseInput(overrides: Partial<ВходныеДанные> = {}): Вхо�
     марка: 'Hyundai',
     модель: 'Porter 2',
     типТС: 'грузовой',
-    видТоплива: 'дизель',
+    видТоплива: 'ДТ',
     объёмБака: 100,
     среднийРасход: '',
     старше10лет: false,
@@ -20,6 +20,7 @@ function baseInput(overrides: Partial<ВходныеДанные> = {}): Вхо�
     одометрНаНачало: 32000,
     одометрНаКонец: '',
     остатокНаНачало: 15,
+    остатокНаКонец: '',
     водители: [{ фио: 'Иванов И.И.', дни: new Set(['2025-06-02', '2025-06-04']) }],
     заправки: [{ дата: '2025-06-01', время: '08:00', объём: 40 }],
     ...overrides,
@@ -142,10 +143,10 @@ describe('calculateSmart', () => {
     expect(result.предупреждения.some((w) => w.includes('Бэкенд недоступен'))).toBe(true);
   });
 
-  it('откатывается на офлайн-движок, если VITE_API_URL не задан вовсе', async () => {
+  it('считает офлайн без предупреждения, если VITE_API_URL не задан вовсе (Light-версия)', async () => {
     __setApiBaseForTests(undefined);
     const result = await calculateSmart(baseInput());
     expect(result.листы.length).toBeGreaterThan(0);
-    expect(result.предупреждения.some((w) => w.includes('Бэкенд недоступен'))).toBe(true);
+    expect(result.предупреждения.some((w) => w.includes('Бэкенд недоступен'))).toBe(false);
   });
 });
