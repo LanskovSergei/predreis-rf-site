@@ -162,6 +162,11 @@ function validateStep(state: DemoState, step: number): string[] {
       errs.push('Добавьте хотя бы одну заправку с чека.');
     }
   }
+  if (step === 5) {
+    if (state.спецтехника && !(Number(state.среднийРасход) > 0)) {
+      errs.push('Для спецтехники коэффициенты не применяются — укажите средний расход вручную.');
+    }
+  }
   if (step === 6) {
     if (state.остатокНаНачало === '' || Number(state.остатокНаНачало) < 0) {
       errs.push('Укажите остаток топлива в баке на начало периода.');
@@ -457,7 +462,7 @@ export function DemoApp() {
               </label>
               <label className="checkbox-row">
                 <input type="checkbox" checked={state.спецтехника} onChange={(e) => upd('спецтехника', e.target.checked)} />
-                Спецтехника
+                Спецтехника <span className="hint">(коэффициенты не применяются, потребуется указать средний расход вручную)</span>
               </label>
             </div>
           </section>
