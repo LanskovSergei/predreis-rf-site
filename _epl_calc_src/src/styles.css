@@ -362,15 +362,16 @@ button:focus-visible {
 .wizard-progress {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 4px;
-  margin: 14px 0 4px;
+  gap: 14px 30px;
+  margin: 22px 0 16px;
+  padding-bottom: 4px;
 }
 
 .wizard-progress__step {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 13px;
   color: var(--gsm-muted);
   opacity: 0.55;
 }
@@ -389,13 +390,14 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--gsm-border);
   color: var(--gsm-ink);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
+  flex: none;
 }
 
 .wizard-progress__step.active .wizard-progress__num,
@@ -405,7 +407,7 @@ button:focus-visible {
 }
 
 .wizard-step-label {
-  margin: 0 0 4px;
+  margin: 0 0 20px;
   font-size: 13px;
   color: var(--gsm-muted);
 }
@@ -678,6 +680,27 @@ button:focus-visible {
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.pro-teaser--light {
+  background: #fff;
+  color: var(--gsm-ink);
+  border: 1px solid var(--gsm-border);
+  border-left: 4px solid var(--gsm-accent);
+}
+
+.pro-teaser--light p {
+  color: var(--gsm-muted);
+}
+
+.pro-teaser--light strong {
+  color: var(--gsm-ink);
+}
+
+.pro-teaser__link {
+  display: inline-block;
+  color: var(--gsm-accent);
+  font-weight: 700;
 }
 
 .disclaimer {

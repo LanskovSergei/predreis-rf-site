@@ -163,6 +163,13 @@ function validateStep(state: DemoState, step: number): string[] {
     }
   }
   if (step === 5) {
+    if (
+      state.одометрНаКонец !== '' &&
+      state.одометрНаНачало !== '' &&
+      Number(state.одометрНаКонец) <= Number(state.одометрНаНачало)
+    ) {
+      errs.push('Одометр на конец периода должен быть больше одометра на начало.');
+    }
     if (state.спецтехника && !(Number(state.среднийРасход) > 0)) {
       errs.push('Для спецтехники коэффициенты не применяются — укажите средний расход вручную.');
     }
@@ -170,6 +177,9 @@ function validateStep(state: DemoState, step: number): string[] {
   if (step === 6) {
     if (state.остатокНаНачало === '' || Number(state.остатокНаНачало) < 0) {
       errs.push('Укажите остаток топлива в баке на начало периода.');
+    }
+    if (state.остатокНаКонец === '' || Number(state.остатокНаКонец) < 0) {
+      errs.push('Укажите остаток топлива в баке на конец периода.');
     }
   }
   return errs;
@@ -651,7 +661,7 @@ export function DemoApp() {
                 <label>Одометр на конец периода, км <span className="hint">(если известно)</span></label>
                 <input
                   type="number"
-                  min={0}
+                  min={state.одометрНаНачало !== '' ? Number(state.одометрНаНачало) + 1 : 0}
                   value={state.одометрНаКонец}
                   onChange={(e) => upd('одометрНаКонец', numField(e.target.value))}
                 />
@@ -839,19 +849,14 @@ export function DemoApp() {
               транспортного средства недействителен.
             </p>
 
-            <div className="pro-teaser">
-              <img src="../img/logo-predreis-footer.png" alt="ПРЕДРЕЙС" className="pro-teaser__logo" />
+            <div className="pro-teaser pro-teaser--light">
+              <img src="../img/logo-predreis.png" alt="ПРЕДРЕЙС" className="pro-teaser__logo" />
               <p>
                 Правильно организовать выпуск автомобилей на линию и вести путевую документацию вам всегда помогут в{' '}
                 <strong>ПРЕДРЕЙС</strong>.
               </p>
-              <p>Свяжитесь с нами:</p>
-              <p className="pro-teaser__contacts">
-                <a href="tel:+79250288755">+7 925 028-87-55</a>
-                <a href="mailto:predreis@predreis.info">predreis@predreis.info</a>
-              </p>
               <p>
-                <a href="../contact.html" style={{ color: '#8285bf', fontWeight: 700 }}>
+                <a href="../contact.html" className="pro-teaser__link">
                   Связаться с ПРЕДРЕЙС →
                 </a>
               </p>
