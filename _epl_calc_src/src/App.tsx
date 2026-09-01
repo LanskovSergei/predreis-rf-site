@@ -3,7 +3,8 @@ import type { ВидСообщения, ВидТоплива, ВходныеДа
 import { parseISODate, toISODate } from './calc';
 import { calculateSmart } from './api';
 import { downloadSheetsPdf } from './pdfExport';
-import { формаПоТипуТС, заголовокПутевогоЛиста, названиеФормы, поляФормы } from './formPl';
+import { формаПоТипуТС, названиеФормы } from './formPl';
+import { PdfFormPages } from './pdfForms';
 
 const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const jsDayToMonFirst = (jsDay: number) => (jsDay === 0 ? 6 : jsDay - 1);
@@ -191,14 +192,6 @@ function validateAll(state: DemoState): string[] {
   const errs: string[] = [];
   for (let s = 1; s <= 6; s++) errs.push(...validateStep(state, s));
   return errs;
-}
-
-function formatFuel(value: ВидТоплива): string {
-  return value;
-}
-
-function formatVehicleType(value: ТипТС): string {
-  return value === 'легковой' ? 'Легковой' : 'Грузовой';
 }
 
 /** Небольшой календарь на месяц с множественным выбором дат. */
@@ -902,45 +895,10 @@ export function DemoApp() {
           {result.листы.map((л) => {
             const forma = л.формаПЛ ?? формаПоТипуТС(state.типТС);
             const input = buildInput(state);
-            const rows = поляФормы(forma, { input, лист: л });
             return (
-            <div className="pdf-sheet" key={`pdf-${л.номер}`}>
-              <div className="pdf-sheet__brand">ПРЕДРЕЙС · Калькулятор ГСМ</div>
-              <h1 className="pdf-sheet__title">{заголовокПутевогоЛиста(forma, л.номер)}</h1>
-              <p className="pdf-sheet__subtitle">
-                {state.марка} {state.модель} · {formatVehicleType(state.типТС)} · {formatFuel(state.видТоплива)}
-              </p>
-              <div className="pdf-sheet__meta">
-                <div>
-                  <span>Форма: </span>
-                  <strong>{названиеФормы(forma)}</strong>
-                </div>
-                <div>
-                  <span>Дата расчёта: </span>
-                  <strong>{todayStamp}</strong>
-                </div>
+              <div className="pdf-form-group" key={`pdf-${л.номер}`}>
+                <PdfFormPages forma={forma} input={input} лист={л} />
               </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Поле формы</th>
-                    <th>Значение</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.label}>
-                      <td>{row.label}</td>
-                      <td>{row.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="pdf-sheet__note">
-                Документ сформирован калькулятором ГСМ ПРЕДРЕЙС. Не является официальным бланком путевого листа.
-                Требуются отметки медицинского осмотра и технического контроля.
-              </p>
-            </div>
             );
           })}
         </div>
