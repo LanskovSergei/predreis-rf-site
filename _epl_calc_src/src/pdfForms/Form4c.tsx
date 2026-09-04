@@ -183,19 +183,21 @@ export function Form4cPages({ d }: { d: ДанныеБланка }) {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td><Val wide>{d.адресСтоянки}</Val></td>
-              <td><Val wide>{d.адресСтоянки}</Val></td>
-              <td><Val>{d.выпускЧ}</Val></td>
-              <td><Val>{d.выпускМин}</Val></td>
-              <td><Val>{d.возвратЧ}</Val></td>
-              <td><Val>{d.возвратМин}</Val></td>
-              <td><Val>{d.пробег}</Val></td>
-            </tr>
-            {Array.from({ length: 4 }, (_, i) => (
-              <tr key={i}>
-                <td>{i + 2}</td>
+            {d.пробегПоДням.map((km, idx) => (
+              <tr key={idx}>
+                <td>{idx + 1}</td>
+                <td><Val wide>{d.адресСтоянки}</Val></td>
+                <td><Val wide>{d.адресСтоянки}</Val></td>
+                <td>{idx === 0 ? <Val>{d.выпускЧ}</Val> : null}</td>
+                <td>{idx === 0 ? <Val>{d.выпускМин}</Val> : null}</td>
+                <td>{idx === d.пробегПоДням.length - 1 ? <Val>{d.возвратЧ}</Val> : null}</td>
+                <td>{idx === d.пробегПоДням.length - 1 ? <Val>{d.возвратМин}</Val> : null}</td>
+                <td><Val>{km}</Val></td>
+              </tr>
+            ))}
+            {Array.from({ length: Math.max(0, 5 - d.пробегПоДням.length) }, (_, i) => (
+              <tr key={`empty-${i}`}>
+                <td>{d.пробегПоДням.length + i + 1}</td>
                 <td />
                 <td />
                 <td />

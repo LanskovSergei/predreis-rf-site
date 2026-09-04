@@ -21,24 +21,20 @@ export async function downloadSheetsPdf(container: HTMLElement, filename: string
 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 5;
-    const maxWidth = pageWidth - margin * 2;
-    const maxHeight = pageHeight - margin * 2;
 
     const canvas = await html2canvas(sheet, {
       backgroundColor: '#ffffff',
       logging: false,
       scale: 2,
-      windowWidth: sheet.scrollWidth,
+      width: sheet.offsetWidth,
+      height: sheet.offsetHeight,
+      windowWidth: sheet.offsetWidth,
+      windowHeight: sheet.offsetHeight,
+      useCORS: true,
     } as Parameters<typeof html2canvas>[1]);
 
     const imgData = canvas.toDataURL('image/png');
-    const ratio = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
-    const width = canvas.width * ratio;
-    const height = canvas.height * ratio;
-    const x = margin + (maxWidth - width) / 2;
-
-    pdf.addImage(imgData, 'PNG', x, margin, width, height);
+    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
   }
 
   pdf.save(filename);

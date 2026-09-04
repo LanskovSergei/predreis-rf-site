@@ -157,9 +157,6 @@ function validateStep(state: DemoState, step: number): string[] {
       if (v.дни.size === 0) errs.push(`Отметьте в календаре хотя бы один рабочий день водителя №${i + 1}.`);
     });
   }
-  if (step === 3) {
-    if (!(Number(state.объёмБака) > 0)) errs.push('Укажите объём бака ТС.');
-  }
   if (step === 4) {
     if (state.заправки.filter((r) => r.дата && r.объём !== '').length === 0) {
       errs.push('Добавьте хотя бы одну заправку с чека.');
@@ -265,7 +262,7 @@ export function DemoApp() {
   const [result, setResult] = useState<РезультатРасчёта | null>(null);
   const [formCollapsed, setFormCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState<'all' | number | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const pdfHostRef = useRef<HTMLDivElement>(null);
 
@@ -387,12 +384,25 @@ export function DemoApp() {
 
   const onDownloadPdf = async () => {
     if (!result?.листы.length || !pdfHostRef.current) return;
-    setPdfLoading(true);
+    setPdfLoading('all');
     try {
       const stamp = new Date().toISOString().slice(0, 10);
       await downloadSheetsPdf(pdfHostRef.current, `putevye-listy-${stamp}.pdf`);
     } finally {
-      setPdfLoading(false);
+      setPdfLoading(null);
+    }
+  };
+
+  const onDownloadSheetPdf = async (номер: number) => {
+    if (!pdfHostRef.current) return;
+    const group = pdfHostRef.current.querySelector<HTMLElement>(`[data-sheet="${номер}"]`);
+    if (!group) return;
+    setPdfLoading(номер);
+    try {
+      const stamp = new Date().toISOString().slice(0, 10);
+      await downloadSheetsPdf(group, `putevoi-list-${номер}-${stamp}.pdf`);
+    } finally {
+      setPdfLoading(null);
     }
   };
 
@@ -601,7 +611,9 @@ export function DemoApp() {
                 </select>
               </div>
               <div className="field">
-                <label>Объём бака ТС, л</label>
+                <label>
+                  Объём бака ТС, л <span className="hint">(необязательно)</span>
+                </label>
                 <input
                   type="number"
                   min={0}
@@ -805,8 +817,8 @@ export function DemoApp() {
 
             <div className="result-toolbar">
               <h2 className="result-heading">Результат: {result.листы.length} путевых листа(ов)</h2>
-              <button type="button" className="btn-pdf" onClick={onDownloadPdf} disabled={pdfLoading}>
-                {pdfLoading ? 'Готовлю PDF…' : 'Скачать PDF'}
+              <button type="button" className="btn-pdf" onClick={onDownloadPdf} disabled={pdfLoading !== null}>
+                {pdfLoading === 'all' ? 'Готовлю PDF…' : 'Скачать PDF'}
               </button>
             </div>
 
@@ -835,6 +847,12 @@ export function DemoApp() {
                     <span>Пробег</span>
                     <span className="mono">{л.пробег} км</span>
                   </div>
+                  {л.пробегПоДням.length > 1 && (
+                    <div className="stub-row stub-row--daily">
+                      <span>По дням</span>
+                      <span className="mono">{л.пробегПоДням.join(' · ')} км</span>
+                    </div>
+                  )}
                   <div className="stub-row">
                     <span>ГСМ в баке</span>
                     <span className="mono">
@@ -844,6 +862,16 @@ export function DemoApp() {
                   <div className="stub-row highlight">
                     <span>Расход</span>
                     <span className="mono">{л.расходФакт} л</span>
+                  </div>
+                  <div className="stub-actions">
+                    <button
+                      type="button"
+                      className="btn-pdf btn-pdf--stub"
+                      onClick={() => onDownloadSheetPdf(л.номер)}
+                      disabled={pdfLoading !== null}
+                    >
+                      {pdfLoading === л.номер ? 'Готовлю PDF…' : 'Скачать этот лист'}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -896,7 +924,7 @@ export function DemoApp() {
             const forma = л.формаПЛ ?? формаПоТипуТС(state.типТС);
             const input = buildInput(state);
             return (
-              <div className="pdf-form-group" key={`pdf-${л.номер}`}>
+              <div className="pdf-form-group" key={`pdf-${л.номер}`} data-sheet={л.номер}>
                 <PdfFormPages forma={forma} input={input} лист={л} />
               </div>
             );

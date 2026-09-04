@@ -17,15 +17,18 @@
   line-height: 1.25;
   box-sizing: border-box;
   padding: 10mm 12mm;
+  overflow: hidden;
 }
 
 .pdf-sheet--portrait {
   width: 794px;
+  height: 1123px;
   min-height: 1123px;
 }
 
 .pdf-sheet--landscape {
   width: 1123px;
+  height: 794px;
   min-height: 794px;
 }
 
@@ -72,6 +75,12 @@
 .pl-form__serial {
   text-align: center;
   margin-bottom: 10px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.pl-form__serial .pl-val {
+  min-width: 18px;
 }
 
 .pl-form__back-title {
@@ -157,14 +166,23 @@
 .pl-val {
   display: inline-block;
   min-width: 24px;
+  max-width: 100%;
   border-bottom: 1px solid #000;
   padding: 0 2px 1px;
   font-weight: 600;
+  vertical-align: baseline;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pl-val--wide {
   display: block;
   min-width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .pl-grid--form3-back th,

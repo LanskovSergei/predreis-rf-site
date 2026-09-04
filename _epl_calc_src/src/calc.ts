@@ -114,6 +114,71 @@ function num(v: number | '' | null | undefined): number {
   return typeof v === 'number' ? v : Number(v) || 0;
 }
 
+/** Детерминированный псевдослучайный [0, 1) для стабильного «рандома» по номеру листа. */
+function seededUnit(seed: number): number {
+  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * Делит суммарный пробег на дни с небольшим разбросом (не одинаковые значения).
+ * Сумма частей строго равна totalKm.
+ */
+export function distributeDailyKm(totalKm: number, days: number, seed: number): number[] {
+  if (days <= 1 || totalKm <= 0) return [round(totalKm, 1)];
+
+  const avg = totalKm / days;
+  const weights: number[] = [];
+  for (let i = 0; i < days; i++) {
+    weights.push(0.72 + seededUnit(seed + i + 1) * 0.56);
+  }
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  const parts = weights.map((w) => round((w / weightSum) * totalKm, 1));
+
+  let drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
+  parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
+
+  if (new Set(parts).size === 1 && days > 1) {
+    const bump = Math.min(3, round(avg * 0.15, 1) || 1);
+    parts[0] = round(Math.max(0, parts[0] - bump), 1);
+    parts[1] = round(parts[1] + bump, 1);
+    drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
+    parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
+  }
+
+  return parts;
+}
+
+function shiftContainsDate(shift: Смена, iso: string): boolean {
+  const start = toISODate(shift.start);
+  const end = toISODate(addDays(shift.start, shift.days - 1));
+  return iso >= start && iso <= end;
+}
+
+/** Смена, ближайшая к дате заправки (если дата не попала ни в одну смену). */
+function nearestShiftIndex(shifts: Смена[], when: Date): number {
+  let best = 0;
+  let bestDist = Infinity;
+  shifts.forEach((shift, idx) => {
+    const mid = addDays(shift.start, Math.floor(shift.days / 2)).getTime();
+    const dist = Math.abs(when.getTime() - mid);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = idx;
+    }
+  });
+  return best;
+}
+
+interface RefuelEvent {
+  when: Date;
+  volume: number;
+  address: string;
+  remaining: number;
+  /** Индекс смены для «осиротевших» заправок вне календаря водителей. */
+  assignShift: number;
+}
+
 // ------- Эффективный расход топлива -------
 
 export function computeConsumption(input: ВходныеДанные, periodStart: Date): СводкаРасхода {
@@ -272,15 +337,28 @@ export function calculate(input: ВходныеДанные): Результат
   }
 
   // Заправки, отсортированные по дате/времени
-  const refuels = input.заправки
+  const refuels: RefuelEvent[] = input.заправки
     .filter((r) => r.дата && num(r.объём) > 0)
-    .map((r) => ({
-      when: new Date(`${r.дата}T${r.время || '00:00'}`),
-      volume: num(r.объём),
-      address: (r.адрес || '').trim(),
-      applied: false,
-    }))
+    .map((r) => {
+      const when = new Date(`${r.дата}T${r.время || '00:00'}`);
+      const volume = num(r.объём);
+      const inShift = shifts.findIndex((s) => shiftContainsDate(s, r.дата));
+      return {
+        when,
+        volume,
+        address: (r.адрес || '').trim(),
+        remaining: volume,
+        assignShift: inShift >= 0 ? inShift : nearestShiftIndex(shifts, when),
+      };
+    })
     .sort((a, b) => a.when.getTime() - b.when.getTime());
+
+  const orphanCount = refuels.filter((r) => !shifts.some((s) => shiftContainsDate(s, toISODate(r.when)))).length;
+  if (orphanCount > 0) {
+    warnings.push(
+      `${orphanCount} заправок приходятся на дни без отмеченных смен — они учтены в ближайших путевых листах.`,
+    );
+  }
 
   let tank = num(input.остатокНаНачало);
   if (tank > tankVolume && tankVolume > 0) {
@@ -303,24 +381,33 @@ export function calculate(input: ВходныеДанные): Результат
     const shift = shifts[i];
     const shiftsLeft = shifts.length - i;
 
-    // Применяем заправки до конца этой смены
     const shiftEndDate = addDays(shift.start, shift.days - 1);
     const shiftEndBoundary = new Date(`${toISODate(shiftEndDate)}T23:59`);
     const routeStops: string[] = [];
     for (const r of refuels) {
-      if (!r.applied && r.when <= shiftEndBoundary) {
-        const room = tankVolume > 0 ? tankVolume - tank : r.volume;
-        const add = tankVolume > 0 ? Math.min(r.volume, Math.max(0, room)) : r.volume;
-        if (tankVolume > 0 && add < r.volume) {
-          warnings.push(
-            `Заправка ${formatDateTime(r.when)} на ${r.volume} л превышает свободный объём бака — ` +
-              `учтено ${round(add, 1)} л.`,
-          );
-        }
-        tank += add;
-        r.applied = true;
-        if (r.address) routeStops.push(`АЗС: ${r.address}`);
+      if (r.remaining <= 0) continue;
+      const inRange = shiftContainsDate(shift, toISODate(r.when));
+      const onAssignedShift = r.assignShift === i;
+      if (!inRange && !onAssignedShift) continue;
+      if (!inRange && onAssignedShift && r.when > shiftEndBoundary) {
+        // осиротевшая заправка — учитываем в назначенной смене
+      } else if (inRange && r.when > shiftEndBoundary) {
+        continue;
       }
+
+      const room = tankVolume > 0 ? tankVolume - tank : r.remaining;
+      const add = tankVolume > 0 ? Math.min(r.remaining, Math.max(0, room)) : r.remaining;
+      if (add <= 0 && tankVolume > 0) continue;
+
+      if (tankVolume > 0 && add < r.remaining) {
+        warnings.push(
+          `Заправка ${formatDateTime(r.when)} на ${r.volume} л превышает свободный объём бака — ` +
+            `учтено ${round(add, 1)} л (остаток перенесён на следующую смену).`,
+        );
+      }
+      tank += add;
+      r.remaining = round(r.remaining - add, 2);
+      if (r.address) routeStops.push(`АЗС: ${r.address}`);
     }
 
     const openingFuel = tank;
@@ -334,6 +421,7 @@ export function calculate(input: ВходныеДанные): Результат
     if (burn < 0) burn = 0;
 
     const mileage = (burn * 100) / C;
+    const пробегПоДням = distributeDailyKm(mileage, shift.days, i + 1);
     const closingFuel = round(tank - burn, 2);
     const closingOdo = round(odo + mileage, 1);
 
@@ -369,6 +457,7 @@ export function calculate(input: ВходныеДанные): Результат
       одометрВыдача: round(openingOdo, 1),
       одометрЗакрытие: closingOdo,
       пробег: round(mileage, 1),
+      пробегПоДням,
       остатокВыдача: round(openingFuel, 2),
       остатокЗакрытие: closingFuel,
       расходНорма: round(burn, 2),
@@ -382,6 +471,10 @@ export function calculate(input: ВходныеДанные): Результат
     remainingBurnable = Math.max(0, remainingBurnable - burn);
   }
 
+  if (refuels.some((r) => r.remaining > 0.01)) {
+    warnings.push('Не все заправки удалось учесть в расчёте — проверьте объём бака и рабочие дни.');
+  }
+
   if (tank > MIN_CLOSING_FUEL + 0.5) {
     warnings.push(
       `После распределения в баке осталось ${round(tank, 1)} л. Не всё топливо реализовано ` +
@@ -389,5 +482,44 @@ export function calculate(input: ВходныеДанные): Результат
     );
   }
 
-  return { листы, предупреждения: warnings, расход: consumption };
+  const finalSheets = rebalanceMileages(листы, C);
+  return { листы: finalSheets, предупреждения: warnings, расход: consumption };
+}
+
+/** Разносит одинаковый пробег по сменам на слегка разные значения (сумма сохраняется). */
+function rebalanceMileages(листы: ПутевойЛист[], C: number): ПутевойЛист[] {
+  if (листы.length <= 1 || C <= 0) return листы;
+
+  const totalKm = листы.reduce((s, l) => s + l.пробег, 0);
+  if (totalKm <= 0) return листы;
+
+  const samePerShift =
+    листы.every((l) => l.пробегПоДням.length <= 1) &&
+    new Set(листы.map((l) => l.пробег)).size === 1;
+  if (!samePerShift) return листы;
+
+  const varied = distributeDailyKm(totalKm, листы.length, листы.length * 11);
+  let odo = листы[0].одометрВыдача;
+  let fuel = листы[0].остатокВыдача;
+
+  return листы.map((л, i) => {
+    const probeg = varied[i];
+    const burn = round((probeg * C) / 100, 2);
+    const closingOdo = round(odo + probeg, 1);
+    const closingFuel = round(fuel - burn, 2);
+    const updated: ПутевойЛист = {
+      ...л,
+      пробег: probeg,
+      пробегПоДням: [probeg],
+      одометрВыдача: round(odo, 1),
+      одометрЗакрытие: closingOdo,
+      остатокВыдача: round(fuel, 2),
+      остатокЗакрытие: closingFuel,
+      расходНорма: burn,
+      расходФакт: burn,
+    };
+    odo = closingOdo;
+    fuel = closingFuel;
+    return updated;
+  });
 }
