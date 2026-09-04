@@ -133,19 +133,52 @@
 .pl-grid td {
   border: 1px solid #000;
   padding: 2px 4px;
-  vertical-align: top;
-  word-wrap: break-word;
+  vertical-align: middle;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .pl-grid th {
   font-weight: 700;
   text-align: center;
   font-size: 7.5pt;
+  line-height: 1.2;
+}
+
+/* Подписи полей — только для формы 3 (4 колонки) */
+.pl-grid--form3 .pl-label {
+  font-weight: 400;
+  width: 34%;
+}
+
+.pl-grid--form3 .pl-label--narrow {
+  width: 18%;
+}
+
+/* Форма 4-С: подписи в узких колонках не переносим по буквам */
+.pl-form--4c .pl-label {
+  font-weight: 400;
+  width: auto;
+  white-space: nowrap;
+  font-size: 7pt;
+  line-height: 1.15;
+  padding: 2px 3px;
+}
+
+.pl-form--4c .pl-col-label {
+  width: 10%;
+}
+
+.pl-form--4c .pl-col-field {
+  width: 7%;
+}
+
+.pl-form--4c .pl-col-value {
+  width: auto;
 }
 
 .pl-label {
   font-weight: 400;
-  width: 34%;
 }
 
 .pl-label--narrow {
@@ -166,23 +199,22 @@
 .pl-val {
   display: inline-block;
   min-width: 24px;
-  max-width: 100%;
   border-bottom: 1px solid #000;
   padding: 0 2px 1px;
   font-weight: 600;
   vertical-align: baseline;
   line-height: 1.2;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .pl-val--wide {
-  display: block;
-  min-width: 100%;
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
   white-space: normal;
   word-break: break-word;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .pl-grid--form3-back th,
@@ -199,6 +231,15 @@
 .pl-grid--4c-results th,
 .pl-grid--4c-results td {
   font-size: 7pt;
+  line-height: 1.15;
+}
+
+.pl-grid--4c-work th,
+.pl-grid--4c-fuel th,
+.pl-grid--4c-back th,
+.pl-grid--4c-results th {
+  white-space: normal;
+  hyphens: manual;
 }
 
 .pl-grid--summary {

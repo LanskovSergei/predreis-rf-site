@@ -32,6 +32,18 @@ export function Form4cPages({ d }: { d: ДанныеБланка }) {
         </div>
 
         <table className="pl-grid pl-grid--4c-info">
+          <colgroup>
+            <col className="pl-col-label" />
+            <col className="pl-col-value" />
+            <col className="pl-col-value" />
+            <col className="pl-col-value" />
+            <col className="pl-col-value" />
+            <col className="pl-col-value" />
+            <col className="pl-col-label" />
+            <col className="pl-col-field" />
+            <col className="pl-col-label" />
+            <col className="pl-col-field" />
+          </colgroup>
           <tbody>
             <tr>
               <td className="pl-label">Организация</td>
@@ -44,7 +56,7 @@ export function Form4cPages({ d }: { d: ДанныеБланка }) {
             <tr>
               <td className="pl-label">Марка автомобиля</td>
               <td colSpan={3}><Val wide>{d.маркаМодель}</Val></td>
-              <td className="pl-label">Гос. номерной знак</td>
+              <td className="pl-label">Гос.&nbsp;номерной&nbsp;знак</td>
               <td><Val /></td>
               <td className="pl-label">Гаражный №</td>
               <td><Val /></td>
