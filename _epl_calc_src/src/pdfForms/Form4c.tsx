@@ -140,7 +140,7 @@ export function Form4cPages({ d }: { d: ДанныеБланка }) {
           <tbody>
             <tr>
               <td className="pl-label">Прицеп 1</td>
-              <td><Val>{d.прицеп ? 'да' : 'нет'}</Val></td>
+              <td><Val>{d.прицеп ? 'да' : ''}</Val></td>
               <td className="pl-label">Прицеп 2–4</td>
               <td colSpan={3} />
             </tr>

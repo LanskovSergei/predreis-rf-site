@@ -30,9 +30,10 @@ function baseInput(overrides: Partial<ВходныеДанные> = {}): Вхо�
 
 describe('distributeDailyKm', () => {
   it('splits total with different day values', () => {
-    const parts = distributeDailyKm(60, 3, 1);
-    expect(parts.reduce((a, b) => a + b, 0)).toBeCloseTo(60, 1);
+    const parts = distributeDailyKm(150, 3, 1);
+    expect(parts.reduce((a, b) => a + b, 0)).toBeCloseTo(150, 1);
     expect(new Set(parts).size).toBeGreaterThan(1);
+    expect(Math.max(...parts) - Math.min(...parts)).toBeGreaterThanOrEqual(10);
   });
 });
 

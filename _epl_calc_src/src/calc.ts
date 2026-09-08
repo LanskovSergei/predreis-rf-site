@@ -128,22 +128,39 @@ export function distributeDailyKm(totalKm: number, days: number, seed: number): 
   if (days <= 1 || totalKm <= 0) return [round(totalKm, 1)];
 
   const avg = totalKm / days;
-  const weights: number[] = [];
+  const spread = Math.min(20, Math.max(10, avg * 0.1));
+  const raw: number[] = [];
   for (let i = 0; i < days; i++) {
-    weights.push(0.72 + seededUnit(seed + i + 1) * 0.56);
+    const offset = (seededUnit(seed + i + 1) - 0.5) * 2 * spread;
+    raw.push(Math.max(1, avg + offset));
   }
-  const weightSum = weights.reduce((a, b) => a + b, 0);
-  const parts = weights.map((w) => round((w / weightSum) * totalKm, 1));
+  const weightSum = raw.reduce((a, b) => a + b, 0);
+  const parts = raw.map((w) => round((w / weightSum) * totalKm, 1));
 
   let drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
   parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
 
   if (new Set(parts).size === 1 && days > 1) {
-    const bump = Math.min(3, round(avg * 0.15, 1) || 1);
-    parts[0] = round(Math.max(0, parts[0] - bump), 1);
+    const bump = Math.min(spread, round(avg * 0.12, 1) || 10);
+    parts[0] = round(Math.max(1, parts[0] - bump), 1);
     parts[1] = round(parts[1] + bump, 1);
     drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
     parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
+  }
+
+  if (days > 1) {
+    const min = Math.min(...parts);
+    const max = Math.max(...parts);
+    const needSpread = Math.min(20, Math.max(10, spread));
+    if (max - min < needSpread && totalKm > needSpread) {
+      const bump = round(needSpread / 2, 1);
+      const minIdx = parts.indexOf(min);
+      const maxIdx = parts.indexOf(max);
+      parts[minIdx] = round(Math.max(1, parts[minIdx] - bump), 1);
+      parts[maxIdx] = round(parts[maxIdx] + bump, 1);
+      drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
+      parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
+    }
   }
 
   return parts;
@@ -493,9 +510,11 @@ function rebalanceMileages(листы: ПутевойЛист[], C: number): П�
   const totalKm = листы.reduce((s, l) => s + l.пробег, 0);
   if (totalKm <= 0) return листы;
 
+  const mileages = листы.map((l) => l.пробег);
+  const spread = Math.max(...mileages) - Math.min(...mileages);
   const samePerShift =
     листы.every((l) => l.пробегПоДням.length <= 1) &&
-    new Set(листы.map((l) => l.пробег)).size === 1;
+    (new Set(mileages).size === 1 || spread < 10);
   if (!samePerShift) return листы;
 
   const varied = distributeDailyKm(totalKm, листы.length, листы.length * 11);

@@ -35,8 +35,36 @@ function firstOfMonthISO(iso: string): string {
   return iso.slice(0, 7) + '-01';
 }
 
-function emptyDriver(периодС: string): ДемоВодитель {
-  return { фио: '', дни: new Set<string>(), viewMonth: firstOfMonthISO(периодС || todayISO()) };
+function emptyDriver(периодС: string, периодПо: string): ДемоВодитель {
+  return {
+    фио: '',
+    дни: weekdaysInPeriod(периодС, периодПо),
+    viewMonth: firstOfMonthISO(периодС || todayISO()),
+  };
+}
+
+/** Синхронизирует выбранные дни водителей с периодом из инпутов. */
+function syncDriversToPeriod(
+  водители: ДемоВодитель[],
+  периодС: string,
+  периодПо: string,
+  prevПериодС: string,
+  prevПериодПо: string,
+): ДемоВодитель[] {
+  const weekdays = weekdaysInPeriod(периодС, периодПо);
+  const periodDays = datesInPeriod(периодС, периодПо);
+  const prevWeekdays = weekdaysInPeriod(prevПериодС, prevПериодПо);
+
+  return водители.map((v) => {
+    const trimmed = new Set([...v.дни].filter((d) => periodDays.has(d)));
+    const hadDefaultSelection =
+      v.дни.size === 0 ||
+      (prevWeekdays.size > 0 &&
+        v.дни.size === prevWeekdays.size &&
+        [...prevWeekdays].every((d) => v.дни.has(d)));
+    const дни = hadDefaultSelection && weekdays.size > 0 ? weekdays : trimmed;
+    return { ...v, дни, viewMonth: firstOfMonthISO(периодС || v.viewMonth) };
+  });
 }
 
 interface DemoState {
@@ -65,17 +93,17 @@ function initialState(): DemoState {
   const периодС = todayISO(-13);
   const периодПо = todayISO();
   return {
-    марка: 'ГАЗ',
-    модель: '3302',
+    марка: '',
+    модель: '',
     типТС: 'грузовой',
     видТоплива: 'Аи-92',
-    объёмБака: 70,
+    объёмБака: '',
     периодС,
     периодПо,
-    водители: [emptyDriver(периодС)],
+    водители: [emptyDriver(периодС, периодПо)],
     одометрНаНачало: '',
     одометрНаКонец: '',
-    остатокНаНачало: 15,
+    остатокНаНачало: '',
     остатокНаКонец: '',
     заправки: [
       { дата: todayISO(-12), время: '08:15', объём: 35 },
@@ -192,14 +220,31 @@ function validateAll(state: DemoState): string[] {
 }
 
 /** Небольшой календарь на месяц с множественным выбором дат. */
+/** Все ISO-даты в интервале [с; по] включительно. */
+function datesInPeriod(periodС: string, periodПо: string): Set<string> {
+  const дни = new Set<string>();
+  if (!periodС || !periodПо) return дни;
+  const from = parseISODate(periodС);
+  const to = parseISODate(periodПо);
+  if (to < from) return дни;
+  for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+    дни.add(toISODate(d));
+  }
+  return дни;
+}
+
 function MiniCalendar({
   viewMonth,
   selected,
+  periodС,
+  periodПо,
   onToggle,
   onViewMonthChange,
 }: {
   viewMonth: string; // YYYY-MM-01
   selected: Set<string>;
+  periodС: string;
+  periodПо: string;
   onToggle: (iso: string) => void;
   onViewMonthChange: (iso: string) => void;
 }) {
@@ -214,6 +259,7 @@ function MiniCalendar({
   for (let d = 1; d <= daysInMonth; d++) cells.push(toISODate(new Date(year, month, d)));
 
   const monthLabel = base.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  const periodDays = useMemo(() => datesInPeriod(periodС, periodПо), [periodС, periodПо]);
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month + delta, 1);
@@ -242,7 +288,7 @@ function MiniCalendar({
             <button
               type="button"
               key={iso}
-              className={`mini-calendar__cell${selected.has(iso) ? ' active' : ''}`}
+              className={`mini-calendar__cell${selected.has(iso) ? ' active' : ''}${periodDays.has(iso) ? ' in-period' : ''}`}
               onClick={() => onToggle(iso)}
             >
               {Number(iso.slice(8, 10))}
@@ -268,6 +314,17 @@ export function DemoApp() {
 
   const upd = <K extends keyof DemoState>(key: K, value: DemoState[K]) =>
     setState((s) => ({ ...s, [key]: value }));
+
+  const updPeriod = (key: 'периодС' | 'периодПо', value: string) =>
+    setState((s) => {
+      const периодС = key === 'периодС' ? value : s.периодС;
+      const периодПо = key === 'периодПо' ? value : s.периодПо;
+      return {
+        ...s,
+        [key]: value,
+        водители: syncDriversToPeriod(s.водители, периодС, периодПо, s.периодС, s.периодПо),
+      };
+    });
 
   const updDriverName = (driverIdx: number, фио: string) =>
     setState((s) => ({
@@ -304,13 +361,15 @@ export function DemoApp() {
   const setDriverCount = (count: number) =>
     setState((s) => {
       const next = [...s.водители];
-      while (next.length < count) next.push(emptyDriver(s.периодС));
+      while (next.length < count) next.push(emptyDriver(s.периодС, s.периодПо));
       while (next.length > count) next.pop();
       return { ...s, водители: next };
     });
 
   const addDriver = () =>
-    setState((s) => (s.водители.length >= 4 ? s : { ...s, водители: [...s.водители, emptyDriver(s.периодС)] }));
+    setState((s) =>
+      s.водители.length >= 4 ? s : { ...s, водители: [...s.водители, emptyDriver(s.периодС, s.периодПо)] },
+    );
 
   const removeDriver = (driverIdx: number) =>
     setState((s) => ({ ...s, водители: s.водители.filter((_, i) => i !== driverIdx) }));
@@ -328,8 +387,13 @@ export function DemoApp() {
   const fillRefuelsFromCalendar = () =>
     setState((s) => {
       const existingDates = new Set(s.заправки.map((r) => r.дата));
+      const periodDays = datesInPeriod(s.периодС, s.периодПо);
       const allDriverDays = new Set<string>();
-      s.водители.forEach((v) => v.дни.forEach((d) => allDriverDays.add(d)));
+      s.водители.forEach((v) =>
+        v.дни.forEach((d) => {
+          if (periodDays.has(d)) allDriverDays.add(d);
+        }),
+      );
       const newDates = [...allDriverDays].filter((d) => !existingDates.has(d)).sort();
       if (newDates.length === 0) return s;
       const drafts: Заправка[] = newDates.map((дата) => ({ дата, время: '08:00', объём: '' }));
@@ -415,8 +479,7 @@ export function DemoApp() {
         </p>
         <p className="tos-note">
           Сервис предоставляется пользователям исключительно в ознакомительных целях и не гарантирует
-          соответствия фактически совершённым поездкам. Использование данного сервиса автоматически
-          означает согласие пользователя с условиями Пользовательского соглашения.
+          соответствия фактически совершённым поездкам.
         </p>
       </div>
 
@@ -524,13 +587,13 @@ export function DemoApp() {
               <span className="section-label">Водители</span>
             </h2>
             <div className="grid grid-dates">
-              <div className="field">
-                <label>Период: с</label>
-                <input type="date" value={state.периодС} onChange={(e) => upd('периодС', e.target.value)} />
+              <div className="field field--wide">
+                <label>Период для расчёта путевых листов: с</label>
+                <input type="date" value={state.периодС} onChange={(e) => updPeriod('периодС', e.target.value)} />
               </div>
-              <div className="field">
-                <label>Период: по</label>
-                <input type="date" value={state.периодПо} onChange={(e) => upd('периодПо', e.target.value)} />
+              <div className="field field--wide">
+                <label>по</label>
+                <input type="date" value={state.периодПо} onChange={(e) => updPeriod('периодПо', e.target.value)} />
               </div>
               <div className="field">
                 <label>Количество водителей</label>
@@ -566,9 +629,12 @@ export function DemoApp() {
                     </button>
                   )}
                 </div>
+                <p className="calendar-hint">Укажите рабочие дни водителя</p>
                 <MiniCalendar
                   viewMonth={driver.viewMonth}
                   selected={driver.дни}
+                  periodС={state.периодС}
+                  periodПо={state.периодПо}
                   onToggle={(iso) => toggleDriverDay(driverIdx, iso)}
                   onViewMonthChange={(iso) => setDriverViewMonth(driverIdx, iso)}
                 />
@@ -675,34 +741,40 @@ export function DemoApp() {
             <h2>
               <span className="section-label">Расход</span>
             </h2>
-            <div className="grid">
+            <div className="field field--full">
+              <label>Одометр на начало периода, км</label>
+              <input
+                type="number"
+                min={0}
+                value={state.одометрНаНачало}
+                onChange={(e) => upd('одометрНаНачало', numField(e.target.value))}
+              />
+            </div>
+            <div className="grid-or">
               <div className="field">
-                <label>Одометр на начало периода, км</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={state.одометрНаНачало}
-                  onChange={(e) => upd('одометрНаНачало', numField(e.target.value))}
-                />
-              </div>
-              <div className="field">
-                <label>Одометр на конец периода, км <span className="hint">(если известно)</span></label>
+                <label>Одометр на конец периода, км</label>
                 <input
                   type="number"
                   min={state.одометрНаНачало !== '' ? Number(state.одометрНаНачало) + 1 : 0}
                   value={state.одометрНаКонец}
                   onChange={(e) => upd('одометрНаКонец', numField(e.target.value))}
+                  placeholder="Если известно"
                 />
+              </div>
+              <div className="grid-or__sep" aria-hidden="true">
+                или
               </div>
               <div className="field">
                 <label>
-                  Либо средний расход, л/100км{' '}
-                  <span
-                    className="tooltip-icon"
-                    tabIndex={0}
-                    title="Если вы не знаете средний расход, укажите одометр на конец периода — мы вычислим расход сами по фактическому пробегу и объёму заправок за период."
-                  >
-                    ?
+                  Средний расход, л/100&nbsp;км{' '}
+                  <span className="tooltip-wrap">
+                    <span className="tooltip-icon" tabIndex={0} aria-describedby="consumption-tip">
+                      ?
+                    </span>
+                    <span className="tooltip-bubble" id="consumption-tip" role="tooltip">
+                      Если вы не знаете средний расход, укажите одометр на конец периода — мы вычислим расход сами
+                      по фактическому пробегу и объёму заправок за период.
+                    </span>
                   </span>
                 </label>
                 <input
@@ -714,17 +786,18 @@ export function DemoApp() {
                   placeholder="Если знаете точно"
                 />
               </div>
-              <div className="field">
-                <label>Вид сообщения</label>
+            </div>
+            <div className="field field--full">
+              <label>Вид сообщения</label>
                 <select value={state.видСообщения} onChange={(e) => upd('видСообщения', e.target.value as ВидСообщения)}>
                   <option value="городское">Городское</option>
                   <option value="пригородное">Пригородное</option>
                   <option value="междугородное">Междугородное</option>
                   <option value="международное">Международное</option>
                 </select>
-              </div>
-              {isMultiDayTrip && (
-                <div className="field">
+            </div>
+            {isMultiDayTrip && (
+              <div className="field field--full">
                   <label>
                     Срок рейса, дней <span className="hint">(на весь рейс, а не по дням)</span>
                   </label>
@@ -736,25 +809,24 @@ export function DemoApp() {
                     onChange={(e) => upd('срокРейсаДней', numField(e.target.value))}
                     placeholder="Напр., 3"
                   />
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         )}
 
         {step === 6 && (
           <section className="ticket-section">
             <h2>
-              <span className="section-label">Остатки</span>
+              <span className="section-label">Остатки ГСМ</span>
             </h2>
             <div className="grid grid-dates">
-              <div className="field">
+              <div className="field field--wide">
                 <label>Период для расчёта: с</label>
-                <input type="date" value={state.периодС} onChange={(e) => upd('периодС', e.target.value)} />
+                <input type="date" value={state.периодС} readOnly className="input-readonly" />
               </div>
-              <div className="field">
-                <label>Период для расчёта: по</label>
-                <input type="date" value={state.периодПо} onChange={(e) => upd('периодПо', e.target.value)} />
+              <div className="field field--wide">
+                <label>по</label>
+                <input type="date" value={state.периодПо} readOnly className="input-readonly" />
               </div>
             </div>
             <div className="grid">
@@ -765,6 +837,7 @@ export function DemoApp() {
                   min={0}
                   value={state.остатокНаНачало}
                   onChange={(e) => upd('остатокНаНачало', numField(e.target.value))}
+                  placeholder="Напр., 15"
                 />
               </div>
               <div className="field">
@@ -774,6 +847,7 @@ export function DemoApp() {
                   min={0}
                   value={state.остатокНаКонец}
                   onChange={(e) => upd('остатокНаКонец', numField(e.target.value))}
+                  placeholder="Напр., 15"
                 />
               </div>
             </div>

@@ -465,6 +465,12 @@ button:focus-visible {
 }
 
 /* Tooltip "?" */
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
 .tooltip-icon {
   display: inline-flex;
   align-items: center;
@@ -478,6 +484,66 @@ button:focus-visible {
   font-weight: 700;
   cursor: help;
   vertical-align: middle;
+}
+
+.tooltip-bubble {
+  display: none;
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  width: min(280px, 70vw);
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: var(--gsm-ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip-wrap:hover .tooltip-bubble,
+.tooltip-wrap:focus-within .tooltip-bubble {
+  display: block;
+}
+
+.field--full {
+  margin-bottom: 14px;
+}
+
+.field--wide label:first-child {
+  min-height: 1.2em;
+}
+
+.grid-or {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.grid-or__sep {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gsm-muted);
+  text-transform: uppercase;
+  padding-bottom: 10px;
+}
+
+.input-readonly {
+  background: #f3f4f6;
+  color: var(--gsm-muted);
+  cursor: default;
+}
+
+.calendar-hint {
+  margin: 8px 0 4px;
+  font-size: 13px;
+  color: var(--gsm-muted);
 }
 
 /* Мини-календарь для выбора рабочих дней водителя */
@@ -550,6 +616,11 @@ button:focus-visible {
   background: var(--gsm-accent);
   color: #fff;
   font-weight: 700;
+}
+
+.mini-calendar__cell.in-period:not(.active) {
+  background: #eef2ff;
+  font-weight: 600;
 }
 
 .mini-calendar__cell--empty {
