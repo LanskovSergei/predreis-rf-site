@@ -35,36 +35,18 @@ function firstOfMonthISO(iso: string): string {
   return iso.slice(0, 7) + '-01';
 }
 
-function emptyDriver(периодС: string, периодПо: string): ДемоВодитель {
-  return {
-    фио: '',
-    дни: weekdaysInPeriod(периодС, периодПо),
-    viewMonth: firstOfMonthISO(периодС || todayISO()),
-  };
+function emptyDriver(периодС: string): ДемоВодитель {
+  return { фио: '', дни: new Set<string>(), viewMonth: firstOfMonthISO(периодС || todayISO()) };
 }
 
-/** Синхронизирует выбранные дни водителей с периодом из инпутов. */
-function syncDriversToPeriod(
-  водители: ДемоВодитель[],
-  периодС: string,
-  периодПо: string,
-  prevПериодС: string,
-  prevПериодПо: string,
-): ДемоВодитель[] {
-  const weekdays = weekdaysInPeriod(периодС, периодПо);
+/** Убирает из календаря водителей даты вне выбранного периода. */
+function trimDriverDaysToPeriod(водители: ДемоВодитель[], периодС: string, периодПо: string): ДемоВодитель[] {
   const periodDays = datesInPeriod(периодС, периодПо);
-  const prevWeekdays = weekdaysInPeriod(prevПериодС, prevПериодПо);
-
-  return водители.map((v) => {
-    const trimmed = new Set([...v.дни].filter((d) => periodDays.has(d)));
-    const hadDefaultSelection =
-      v.дни.size === 0 ||
-      (prevWeekdays.size > 0 &&
-        v.дни.size === prevWeekdays.size &&
-        [...prevWeekdays].every((d) => v.дни.has(d)));
-    const дни = hadDefaultSelection && weekdays.size > 0 ? weekdays : trimmed;
-    return { ...v, дни, viewMonth: firstOfMonthISO(периодС || v.viewMonth) };
-  });
+  return водители.map((v) => ({
+    ...v,
+    дни: new Set([...v.дни].filter((d) => periodDays.has(d))),
+    viewMonth: firstOfMonthISO(периодС || v.viewMonth),
+  }));
 }
 
 interface DemoState {
@@ -100,16 +82,13 @@ function initialState(): DemoState {
     объёмБака: '',
     периодС,
     периодПо,
-    водители: [emptyDriver(периодС, периодПо)],
+    водители: [emptyDriver(периодС)],
     одометрНаНачало: '',
     одометрНаКонец: '',
     остатокНаНачало: '',
     остатокНаКонец: '',
-    заправки: [
-      { дата: todayISO(-12), время: '08:15', объём: 35 },
-      { дата: todayISO(-7), время: '07:50', объём: 30 },
-      { дата: todayISO(-2), время: '08:05', объём: 32 },
-    ],
+    заправки: [],
+
     старше10лет: false,
     прицепГруз: false,
     спецтехника: false,
@@ -319,10 +298,12 @@ export function DemoApp() {
     setState((s) => {
       const периодС = key === 'периодС' ? value : s.периодС;
       const периодПо = key === 'периодПо' ? value : s.периодПо;
+      const periodDays = datesInPeriod(периодС, периодПо);
       return {
         ...s,
         [key]: value,
-        водители: syncDriversToPeriod(s.водители, периодС, периодПо, s.периодС, s.периодПо),
+        водители: trimDriverDaysToPeriod(s.водители, периодС, периодПо),
+        заправки: s.заправки.filter((r) => periodDays.has(r.дата)),
       };
     });
 
@@ -350,25 +331,27 @@ export function DemoApp() {
       водители: s.водители.map((v, i) => (i === driverIdx ? { ...v, viewMonth: iso } : v)),
     }));
 
-  const selectAllWorkingDays = (driverIdx: number) =>
+  const toggleAllWorkingDays = (driverIdx: number, checked: boolean) =>
     setState((s) => ({
       ...s,
       водители: s.водители.map((v, i) =>
-        i === driverIdx ? { ...v, дни: weekdaysInPeriod(s.периодС, s.периодПо) } : v,
+        i === driverIdx
+          ? { ...v, дни: checked ? weekdaysInPeriod(s.периодС, s.периодПо) : new Set<string>() }
+          : v,
       ),
     }));
 
   const setDriverCount = (count: number) =>
     setState((s) => {
       const next = [...s.водители];
-      while (next.length < count) next.push(emptyDriver(s.периодС, s.периодПо));
+      while (next.length < count) next.push(emptyDriver(s.периодС));
       while (next.length > count) next.pop();
       return { ...s, водители: next };
     });
 
   const addDriver = () =>
     setState((s) =>
-      s.водители.length >= 4 ? s : { ...s, водители: [...s.водители, emptyDriver(s.периодС, s.периодПо)] },
+      s.водители.length >= 4 ? s : { ...s, водители: [...s.водители, emptyDriver(s.периодС)] },
     );
 
   const removeDriver = (driverIdx: number) =>
@@ -386,18 +369,21 @@ export function DemoApp() {
 
   const fillRefuelsFromCalendar = () =>
     setState((s) => {
-      const existingDates = new Set(s.заправки.map((r) => r.дата));
       const periodDays = datesInPeriod(s.периодС, s.периодПо);
-      const allDriverDays = new Set<string>();
+      const targetDates = new Set<string>();
       s.водители.forEach((v) =>
         v.дни.forEach((d) => {
-          if (periodDays.has(d)) allDriverDays.add(d);
+          if (periodDays.has(d)) targetDates.add(d);
         }),
       );
-      const newDates = [...allDriverDays].filter((d) => !existingDates.has(d)).sort();
-      if (newDates.length === 0) return s;
-      const drafts: Заправка[] = newDates.map((дата) => ({ дата, время: '08:00', объём: '' }));
-      return { ...s, заправки: [...s.заправки, ...drafts].sort((a, b) => a.дата.localeCompare(b.дата)) };
+      const existingByDate = new Map(
+        s.заправки.filter((r) => periodDays.has(r.дата)).map((r) => [r.дата, r] as const),
+      );
+      const заправки: Заправка[] = [...targetDates].sort().map((дата) => {
+        const prev = existingByDate.get(дата);
+        return prev ?? { ...emptyRefuel(), дата };
+      });
+      return { ...s, заправки };
     });
 
   const isMultiDayTrip = state.видСообщения === 'междугородное' || state.видСообщения === 'международное';
@@ -647,7 +633,7 @@ export function DemoApp() {
                       weekdaysInPeriod(state.периодС, state.периодПо).size === driver.дни.size &&
                       [...weekdaysInPeriod(state.периодС, state.периодПо)].every((d) => driver.дни.has(d))
                     }
-                    onChange={() => selectAllWorkingDays(driverIdx)}
+                    onChange={(e) => toggleAllWorkingDays(driverIdx, e.target.checked)}
                   />
                   Выбрать все рабочие дни периода (Пн–Пт)
                 </label>
