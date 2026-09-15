@@ -66,6 +66,12 @@ def main() -> int:
 
     shutil.copytree(DIST / "assets", OUT / "assets")
 
+    templates_src = DIST / "pdf-templates"
+    if not templates_src.exists():
+        templates_src = SRC / "public" / "pdf-templates"
+    if templates_src.exists():
+        shutil.copytree(templates_src, OUT / "pdf-templates")
+
     # Keep only app bundles, drop accidentally copied site assets from older builds
     for path in OUT.rglob("*"):
         if path.is_file() and path.suffix in {".png", ".jpg", ".svg", ".woff", ".woff2", ".eot", ".ttf"}:

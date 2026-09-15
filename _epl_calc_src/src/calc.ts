@@ -19,6 +19,7 @@ import type {
   ТипТС,
   ВидТоплива,
   ФормаПЛ,
+  ЗаправкаНаЛисте,
 } from './types';
 import { формаПоТипуТС } from './formPl';
 
@@ -55,14 +56,6 @@ const COEFF = {
     междугородное: 0,
     международное: 0,
   } as Record<ВидСообщения, number>,
-};
-
-/** Средняя скорость для оценки времени в пути (км/ч) по виду сообщения. */
-const AVG_SPEED: Record<ВидСообщения, number> = {
-  городское: 25,
-  пригородное: 45,
-  междугородное: 65,
-  международное: 65,
 };
 
 const DEFAULT_DEPART_HOUR = 8; // 08:00
@@ -120,6 +113,170 @@ function seededUnit(seed: number): number {
   return x - Math.floor(x);
 }
 
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function scheduleSeed(shift: Смена, shiftIdx: number): number {
+  return shiftIdx * 991 + hashString(shift.driver) + hashString(toISODate(shift.start)) * 17;
+}
+
+interface ShiftSchedule {
+  departure: Date;
+  returnDt: Date;
+  totalHours: number;
+}
+
+/** Односменный городской/пригородный день: выезд ~8:02–8:08, возврат 15:00–18:00, смена 6–8 ч. */
+function buildShiftSchedule(shift: Смена, shiftIdx: number, видСообщения: ВидСообщения): ShiftSchedule {
+  const seed = scheduleSeed(shift, shiftIdx);
+  const departMin = 2 + Math.floor(seededUnit(seed) * 7); // 2–8 мин после 8:00
+
+  const departure = new Date(shift.start);
+  departure.setHours(DEFAULT_DEPART_HOUR, departMin, 0, 0);
+
+  if (shift.days === 1 && (видСообщения === 'городское' || видСообщения === 'пригородное')) {
+    const day = new Date(shift.start);
+    const minReturn = new Date(departure.getTime() + 6 * 3600000);
+    const maxReturn = new Date(departure.getTime() + 8 * 3600000);
+    const winStart = new Date(day);
+    winStart.setHours(15, 0, 0, 0);
+    const winEnd = new Date(day);
+    winEnd.setHours(18, 0, 0, 0);
+
+    let pickStart = new Date(Math.max(minReturn.getTime(), winStart.getTime()));
+    let pickEnd = new Date(Math.min(maxReturn.getTime(), winEnd.getTime()));
+    if (pickStart.getTime() > pickEnd.getTime()) {
+      const fallback = departure.getTime() + (6.5 + seededUnit(seed + 1) * 1.5) * 3600000;
+      pickStart = new Date(Math.max(fallback, winStart.getTime()));
+      pickEnd = winEnd;
+    }
+
+    const span = Math.max(0, pickEnd.getTime() - pickStart.getTime());
+    const returnDt = new Date(pickStart.getTime() + seededUnit(seed + 2) * span);
+    returnDt.setSeconds(0, 0);
+    const totalHours = round((returnDt.getTime() - departure.getTime()) / 3600000, 1);
+    return { departure, returnDt, totalHours };
+  }
+
+  if (shift.days > 1) {
+    const returnDt = new Date(addDays(shift.start, shift.days - 1));
+    returnDt.setHours(
+      15 + Math.floor(seededUnit(seed + 1) * 3),
+      Math.floor(seededUnit(seed + 2) * 60),
+      0,
+      0,
+    );
+    const totalHours = round((returnDt.getTime() - departure.getTime()) / 3600000, 1);
+    return { departure, returnDt, totalHours };
+  }
+
+  const workHours = 6 + seededUnit(seed + 1) * 2;
+  const returnDt = new Date(departure.getTime() + workHours * 3600000);
+  return { departure, returnDt, totalHours: round(workHours, 1) };
+}
+
+/** Время оплаты на АЗС: ≥15 мин после выезда, внутри смены (дорога + очередь). */
+function assignRefuelTimes(
+  records: { event: RefuelEvent; volume: number }[],
+  schedule: ShiftSchedule,
+  seed: number,
+): ЗаправкаНаЛисте[] {
+  const minWhen = schedule.departure.getTime() + 15 * 60000;
+  const maxWhen = schedule.returnDt.getTime() - 30 * 60000;
+  let cursor = minWhen;
+
+  return records.map(({ event, volume }, idx) => {
+    const travelMin = 10 + Math.floor(seededUnit(seed + idx * 5) * 16);
+    const queueMin = 5 + Math.floor(seededUnit(seed + idx * 5 + 1) * 11);
+    let whenMs = schedule.departure.getTime() + (travelMin + queueMin) * 60000;
+    if (idx > 0) {
+      const gap = (45 + Math.floor(seededUnit(seed + idx) * 45)) * 60000;
+      whenMs = Math.max(whenMs, cursor + gap);
+    }
+    whenMs = Math.min(Math.max(whenMs, minWhen), maxWhen);
+    event.when = new Date(whenMs);
+    cursor = whenMs + (8 + Math.floor(seededUnit(seed + idx + 3) * 7)) * 60000;
+
+    return {
+      время: `${pad2(event.when.getHours())}:${pad2(event.when.getMinutes())}`,
+      объём: round(volume, 2),
+      адрес: event.address || undefined,
+    };
+  });
+}
+
+/** Разброс пробега вокруг среднего: ~15–35% от среднего, но не меньше 12 км. */
+function mileageSpread(avg: number): number {
+  return Math.min(avg * 0.35, Math.max(12, avg * 0.18));
+}
+
+function normalizeKmParts(raw: number[], totalKm: number): number[] {
+  const weightSum = raw.reduce((a, b) => a + b, 0);
+  if (weightSum <= 0) return raw.map(() => round(totalKm / raw.length, 1));
+
+  const parts = raw.map((w) => round((w / weightSum) * totalKm, 1));
+  let drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
+  parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
+  return parts;
+}
+
+function enforceMinSpread(parts: number[], totalKm: number): number[] {
+  if (parts.length <= 1 || totalKm <= 0) return parts;
+
+  const avg = totalKm / parts.length;
+  const needSpread = mileageSpread(avg);
+  const min = Math.min(...parts);
+  const max = Math.max(...parts);
+  if (max - min >= needSpread * 0.75) return parts;
+
+  const bump = round(needSpread / 2, 1);
+  const next = [...parts];
+  const minIdx = next.indexOf(min);
+  const maxIdx = next.indexOf(max);
+  next[minIdx] = round(Math.max(1, next[minIdx] - bump), 1);
+  next[maxIdx] = round(next[maxIdx] + bump, 1);
+  let drift = round(totalKm - next.reduce((a, b) => a + b, 0), 1);
+  next[next.length - 1] = round(next[next.length - 1] + drift, 1);
+  return next;
+}
+
+/**
+ * Разносит суммарный пробег по односменным листам с учётом даты и смены водителя.
+ * Сумма частей строго равна totalKm.
+ */
+export function allocateVariedMileages(листы: ПутевойЛист[], totalKm: number): number[] {
+  if (листы.length <= 1 || totalKm <= 0) return [round(totalKm, 1)];
+
+  const avg = totalKm / листы.length;
+  const spread = mileageSpread(avg);
+  const raw: number[] = [];
+
+  for (let i = 0; i < листы.length; i++) {
+    const sheet = листы[i];
+    const prevDriver = i > 0 ? листы[i - 1].водитель : '';
+    const handover = sheet.водитель !== prevDriver && i > 0;
+    const datePart = sheet.выпуск.split(' ')[0] ?? '';
+    const dateSeed = hashString(datePart);
+    const driverSeed = hashString(sheet.водитель);
+    const transitionSeed = handover ? hashString(`${prevDriver}|${sheet.водитель}`) : 0;
+    const seed =
+      i * 997 +
+      driverSeed +
+      dateSeed * 13 +
+      transitionSeed * 37 +
+      (handover ? 5000 + transitionSeed : 0);
+
+    const handoverBoost = handover ? (seededUnit(transitionSeed + 3) - 0.5) * spread * 0.6 : 0;
+    const offset = (seededUnit(seed) - 0.5) * 2 * spread + handoverBoost;
+    raw.push(Math.max(1, avg + offset));
+  }
+
+  return enforceMinSpread(normalizeKmParts(raw, totalKm), totalKm);
+}
+
 /**
  * Делит суммарный пробег на дни с небольшим разбросом (не одинаковые значения).
  * Сумма частей строго равна totalKm.
@@ -128,42 +285,13 @@ export function distributeDailyKm(totalKm: number, days: number, seed: number): 
   if (days <= 1 || totalKm <= 0) return [round(totalKm, 1)];
 
   const avg = totalKm / days;
-  const spread = Math.min(20, Math.max(10, avg * 0.1));
+  const spread = mileageSpread(avg);
   const raw: number[] = [];
   for (let i = 0; i < days; i++) {
     const offset = (seededUnit(seed + i + 1) - 0.5) * 2 * spread;
     raw.push(Math.max(1, avg + offset));
   }
-  const weightSum = raw.reduce((a, b) => a + b, 0);
-  const parts = raw.map((w) => round((w / weightSum) * totalKm, 1));
-
-  let drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
-  parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
-
-  if (new Set(parts).size === 1 && days > 1) {
-    const bump = Math.min(spread, round(avg * 0.12, 1) || 10);
-    parts[0] = round(Math.max(1, parts[0] - bump), 1);
-    parts[1] = round(parts[1] + bump, 1);
-    drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
-    parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
-  }
-
-  if (days > 1) {
-    const min = Math.min(...parts);
-    const max = Math.max(...parts);
-    const needSpread = Math.min(20, Math.max(10, spread));
-    if (max - min < needSpread && totalKm > needSpread) {
-      const bump = round(needSpread / 2, 1);
-      const minIdx = parts.indexOf(min);
-      const maxIdx = parts.indexOf(max);
-      parts[minIdx] = round(Math.max(1, parts[minIdx] - bump), 1);
-      parts[maxIdx] = round(parts[maxIdx] + bump, 1);
-      drift = round(totalKm - parts.reduce((a, b) => a + b, 0), 1);
-      parts[parts.length - 1] = round(parts[parts.length - 1] + drift, 1);
-    }
-  }
-
-  return parts;
+  return enforceMinSpread(normalizeKmParts(raw, totalKm), totalKm);
 }
 
 function shiftContainsDate(shift: Смена, iso: string): boolean {
@@ -400,7 +528,9 @@ export function calculate(input: ВходныеДанные): Результат
 
     const shiftEndDate = addDays(shift.start, shift.days - 1);
     const shiftEndBoundary = new Date(`${toISODate(shiftEndDate)}T23:59`);
-    const routeStops: string[] = [];
+    const schedule = buildShiftSchedule(shift, i, input.видСообщения);
+    const shiftRefuelRecords: { event: RefuelEvent; volume: number }[] = [];
+
     for (const r of refuels) {
       if (r.remaining <= 0) continue;
       const inRange = shiftContainsDate(shift, toISODate(r.when));
@@ -424,8 +554,10 @@ export function calculate(input: ВходныеДанные): Результат
       }
       tank += add;
       r.remaining = round(r.remaining - add, 2);
-      if (r.address) routeStops.push(`АЗС: ${r.address}`);
+      shiftRefuelRecords.push({ event: r, volume: add });
     }
+
+    const заправкиНаЛисте = assignRefuelTimes(shiftRefuelRecords, schedule, scheduleSeed(shift, i));
 
     const openingFuel = tank;
     const openingOdo = odo;
@@ -442,26 +574,14 @@ export function calculate(input: ВходныеДанные): Результат
     const closingFuel = round(tank - burn, 2);
     const closingOdo = round(odo + mileage, 1);
 
-    const speed = AVG_SPEED[input.видСообщения] ?? 40;
-    const departure = new Date(shift.start);
-    departure.setHours(DEFAULT_DEPART_HOUR, 0, 0, 0);
-
-    let returnDt: Date;
-    let totalHours: number;
-    if (shift.days > 1) {
-      returnDt = new Date(addDays(shift.start, shift.days - 1));
-      const extraHours = Math.min(12, Math.round(mileage / speed / shift.days));
-      returnDt.setHours(DEFAULT_DEPART_HOUR + extraHours, 0, 0, 0);
-      totalHours = round((returnDt.getTime() - departure.getTime()) / 3600000, 1);
-    } else {
-      const driveHours = mileage / speed;
-      totalHours = round(driveHours, 1);
-      returnDt = new Date(departure.getTime() + driveHours * 3600000);
-    }
+    const { departure, returnDt, totalHours } = schedule;
 
     const маршрут: string[] = [];
     if (input.адресСтоянки) маршрут.push(input.адресСтоянки);
-    маршрут.push(...routeStops);
+    for (const z of заправкиНаЛисте) {
+      const label = z.адрес ? `АЗС (${z.время}): ${z.адрес}` : `АЗС (${z.время})`;
+      маршрут.push(label);
+    }
     if (input.адресСтоянки) маршрут.push(input.адресСтоянки);
 
     листы.push({
@@ -481,6 +601,7 @@ export function calculate(input: ВходныеДанные): Результат
       расходФакт: round(burn, 2),
       видСообщения: input.видСообщения,
       маршрут,
+      заправки: заправкиНаЛисте.length > 0 ? заправкиНаЛисте : undefined,
     });
 
     tank = closingFuel;
@@ -503,21 +624,15 @@ export function calculate(input: ВходныеДанные): Результат
   return { листы: finalSheets, предупреждения: warnings, расход: consumption };
 }
 
-/** Разносит одинаковый пробег по сменам на слегка разные значения (сумма сохраняется). */
+/** Разносит пробег по односменным листам (день ко дню, с учётом смены водителя). */
 function rebalanceMileages(листы: ПутевойЛист[], C: number): ПутевойЛист[] {
   if (листы.length <= 1 || C <= 0) return листы;
+  if (!листы.every((l) => l.пробегПоДням.length <= 1)) return листы;
 
   const totalKm = листы.reduce((s, l) => s + l.пробег, 0);
   if (totalKm <= 0) return листы;
 
-  const mileages = листы.map((l) => l.пробег);
-  const spread = Math.max(...mileages) - Math.min(...mileages);
-  const samePerShift =
-    листы.every((l) => l.пробегПоДням.length <= 1) &&
-    (new Set(mileages).size === 1 || spread < 10);
-  if (!samePerShift) return листы;
-
-  const varied = distributeDailyKm(totalKm, листы.length, листы.length * 11);
+  const varied = allocateVariedMileages(листы, totalKm);
   let odo = листы[0].одометрВыдача;
   let fuel = листы[0].остатокВыдача;
 
