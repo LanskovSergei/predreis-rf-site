@@ -1,23 +1,24 @@
 import type { ДанныеБланка } from '../pdfFormUtils';
-import form3Front from '../../templates/form3-1.compact.json';
-import form3Back from '../../templates/form3-2.compact.json';
-import { LayoutSheet } from './layout/LayoutSheet';
-import type { FormLayout } from './layout/types';
-import { overlaysForm3Back, overlaysForm3Front } from './layout/officialOverlays';
+import { TemplateSheet } from './template/TemplateSheet';
+import { FORM3_BACK_SIZE, FORM3_FRONT_SIZE, form3BackFields, form3FrontFields } from './template/form3Fields';
 
 export function Form3Pages({ d }: { d: ДанныеБланка }) {
   return (
     <>
-      <LayoutSheet
-        layout={form3Front as FormLayout}
+      <TemplateSheet
+        image="form3-front.png"
         orientation="portrait"
-        overlays={overlaysForm3Front(d)}
+        width={FORM3_FRONT_SIZE.width}
+        height={FORM3_FRONT_SIZE.height}
+        fields={form3FrontFields(d)}
         d={d}
       />
-      <LayoutSheet
-        layout={form3Back as FormLayout}
+      <TemplateSheet
+        image="form3-back.png"
         orientation="portrait"
-        overlays={overlaysForm3Back(d)}
+        width={FORM3_BACK_SIZE.width}
+        height={FORM3_BACK_SIZE.height}
+        fields={form3BackFields(d)}
         d={d}
       />
     </>

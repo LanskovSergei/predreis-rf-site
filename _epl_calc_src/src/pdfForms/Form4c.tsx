@@ -1,25 +1,17 @@
 import type { ДанныеБланка } from '../pdfFormUtils';
-import form4cFront from '../../templates/form4c-1.compact.json';
-import form4cBack from '../../templates/form4c-2.compact.json';
-import { LayoutSheet } from './layout/LayoutSheet';
-import type { FormLayout } from './layout/types';
-import { overlaysForm4cBack, overlaysForm4cFront } from './layout/officialOverlays';
+import { TemplateSheet } from './template/TemplateSheet';
+import { FORM4C_FRONT_SIZE, form4cFrontFields } from './template/form4cFields';
 
+/** Форма 4-С: только лицевая сторона (стр. 1) — альбомная ориентация, как в шаблоне. */
 export function Form4cPages({ d }: { d: ДанныеБланка }) {
   return (
-    <>
-      <LayoutSheet
-        layout={form4cFront as FormLayout}
-        orientation="landscape"
-        overlays={overlaysForm4cFront(d)}
-        d={d}
-      />
-      <LayoutSheet
-        layout={form4cBack as FormLayout}
-        orientation="landscape"
-        overlays={overlaysForm4cBack(d)}
-        d={d}
-      />
-    </>
+    <TemplateSheet
+      image="form4c-front.png"
+      orientation="landscape"
+      width={FORM4C_FRONT_SIZE.width}
+      height={FORM4C_FRONT_SIZE.height}
+      fields={form4cFrontFields(d)}
+      d={d}
+    />
   );
 }

@@ -20,6 +20,25 @@
   overflow: hidden;
 }
 
+.pdf-sheet--template {
+  padding: 0;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+  position: relative;
+}
+
+.pl-template-field {
+  position: absolute;
+  box-sizing: border-box;
+  font-family: 'Times New Roman', Times, serif;
+  line-height: 1.1;
+  color: #000;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0 1px;
+}
+
 .pl-official-wrap.pdf-sheet {
   padding: 3mm 4mm;
 }
