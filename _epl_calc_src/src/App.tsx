@@ -881,17 +881,6 @@ export function DemoApp() {
                 {pdfLoading === 'all' ? 'Готовлю PDF…' : 'Скачать PDF'}
               </button>
             </div>
-            <p className="step-hint pdf-form-hint">
-              PDF заполняет те же поля, что и типовые формы № 3 / № 4-С, но пока это упрощённая вёрстка, не
-              пиксель-копия бланка Госкомстата.{' '}
-              <a href="pdf-templates/putevoi-list-f3-2.xls" download>
-                Бланк формы 3 (.xls)
-              </a>
-              {' · '}
-              <a href="pdf-templates/putevoy_list_gruzovogo_avtomobilya-forma_4-c.xls" download>
-                Бланк формы 4-С (.xls)
-              </a>
-            </p>
 
             <div className="stub-grid">
               {result.листы.map((л) => (
