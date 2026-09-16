@@ -243,6 +243,19 @@
   width: auto;
 }
 
+.pl-form--4c {
+  font-size: 8.5pt;
+}
+
+.pl-form--4c .pl-form__section-title {
+  margin: 5px 0 2px;
+}
+
+.pl-form--4c .pl-grid th,
+.pl-form--4c .pl-grid td {
+  padding: 1px 3px;
+}
+
 .pl-label {
   font-weight: 400;
 }
@@ -271,6 +284,13 @@
   vertical-align: baseline;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+/* В ячейках таблицы линия уже у границы — без второго подчёркивания */
+.pl-grid td .pl-val {
+  border-bottom: none;
+  min-width: 0;
+  padding: 0 1px;
 }
 
 .pl-val--wide {
