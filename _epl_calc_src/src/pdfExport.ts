@@ -34,7 +34,22 @@ export async function downloadSheetsPdf(container: HTMLElement, filename: string
     } as Parameters<typeof html2canvas>[1]);
 
     const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+
+    // Вписываем с сохранением пропорций (а не растягиваем на всю страницу) —
+    // PNG-бланки сняты с реальных сканов и не обязаны совпадать по пропорциям с A4.
+    const imgRatio = canvas.width / canvas.height;
+    const pageRatio = pageWidth / pageHeight;
+    let drawWidth = pageWidth;
+    let drawHeight = pageHeight;
+    if (imgRatio > pageRatio) {
+      drawHeight = pageWidth / imgRatio;
+    } else {
+      drawWidth = pageHeight * imgRatio;
+    }
+    const offsetX = (pageWidth - drawWidth) / 2;
+    const offsetY = (pageHeight - drawHeight) / 2;
+
+    pdf.addImage(imgData, 'PNG', offsetX, offsetY, drawWidth, drawHeight);
   }
 
   pdf.save(filename);
