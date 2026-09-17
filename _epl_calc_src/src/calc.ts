@@ -634,13 +634,26 @@ function rebalanceMileages(листы: ПутевойЛист[], C: number): П�
 
   const varied = allocateVariedMileages(листы, totalKm);
   let odo = листы[0].одометрВыдача;
-  let fuel = листы[0].остатокВыдача;
 
   return листы.map((л, i) => {
-    const probeg = varied[i];
-    const burn = round((probeg * C) / 100, 2);
+    // Открывающий остаток берём из исходного расчёта (шаг 1) — там он уже
+    // корректно учитывает время заправок в течение периода. Пересчитывать
+    // его здесь сквозной переменной нельзя: заправки между листами она не видит.
+    const fuel = л.остатокВыдача;
+    let probeg = varied[i];
+    let burn = round((probeg * C) / 100, 2);
+
+    // Вариация пробега не должна уводить бак в минус: если на смену не хватает
+    // топлива (с учётом резерва, где это в принципе возможно), урезаем пробег
+    // до физически доступного, а не просто рисуем отрицательный остаток.
+    const affordable = Math.max(0, fuel - MIN_CLOSING_FUEL);
+    if (burn > affordable) {
+      burn = round(affordable, 2);
+      probeg = round((burn * 100) / C, 1);
+    }
+
     const closingOdo = round(odo + probeg, 1);
-    const closingFuel = round(fuel - burn, 2);
+    const closingFuel = round(Math.max(0, fuel - burn), 2);
     const updated: ПутевойЛист = {
       ...л,
       пробег: probeg,
@@ -653,7 +666,6 @@ function rebalanceMileages(листы: ПутевойЛист[], C: number): П�
       расходФакт: burn,
     };
     odo = closingOdo;
-    fuel = closingFuel;
     return updated;
   });
 }
