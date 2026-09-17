@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { allocateVariedMileages, calculate, distributeDailyKm } from './calc';
+import {
+  MIN_CLOSING_FUEL,
+  MIN_DAILY_KM,
+  MAX_DAILY_KM,
+  allocateVariedMileages,
+  calculate,
+  distributeDailyKm,
+} from './calc';
 import type { ПутевойЛист } from './types';
 import type { ВходныеДанные } from './types';
 
@@ -155,6 +162,50 @@ describe('calculate work hours', () => {
     const depMin = Number(dep![1]) * 60 + Number(dep![2]);
     const refMin = Number(ref![1]) * 60 + Number(ref![2]);
     expect(refMin - depMin).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe('fuel and mileage limits', () => {
+  it('never shows closing fuel below 10 L or negative', () => {
+    const input = baseInput({
+      типТС: 'грузовой',
+      формаПЛ: '4-c',
+      среднийРасход: 22,
+      остатокНаНачало: 35,
+      остатокНаКонец: 10,
+      объёмБака: 60,
+      водители: [
+        {
+          фио: 'Второй В.Т.',
+          дни: new Set(['2026-09-03', '2026-09-04', '2026-09-05', '2026-09-06']),
+        },
+      ],
+      заправки: [
+        { дата: '2026-09-03', время: '08:00', объём: 30 },
+        { дата: '2026-09-04', время: '08:30', объём: 30 },
+        { дата: '2026-09-05', время: '08:00', объём: 30 },
+      ],
+    });
+    const result = calculate(input);
+    for (const sheet of result.листы) {
+      expect(sheet.остатокЗакрытие).toBeGreaterThanOrEqual(MIN_CLOSING_FUEL);
+      expect(sheet.остатокВыдача).toBeGreaterThanOrEqual(MIN_CLOSING_FUEL);
+      expect(sheet.остатокЗакрытие).toBeLessThanOrEqual(60);
+      if (sheet.пробег > 0) {
+        expect(sheet.пробег).toBeGreaterThanOrEqual(MIN_DAILY_KM);
+        expect(sheet.пробег).toBeLessThanOrEqual(MAX_DAILY_KM.грузовой);
+      }
+    }
+  });
+
+  it('starts odometer at 2500 km when not provided', () => {
+    const input = baseInput({
+      одометрНаНачало: '',
+      заправки: [{ дата: '2025-06-01', время: '08:00', объём: 40 }],
+    });
+    const result = calculate(input);
+    expect(result.листы[0].одометрВыдача).toBe(2500);
+    expect(result.предупреждения.some((w) => w.includes('2500'))).toBe(true);
   });
 });
 

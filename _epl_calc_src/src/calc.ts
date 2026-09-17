@@ -31,8 +31,77 @@ export const MAX_DAILY_KM: Record<ТипТС, number> = {
   грузовой: 250,
 };
 
-/** Минимальный остаток топлива на закрытии ПЛ (ТЗ). */
-export const MIN_CLOSING_FUEL = 10; // литров
+/** Минимальный пробег за выезд / за сутки в смене. */
+export const MIN_DAILY_KM = 5.9;
+
+/** Минимальный остаток топлива в баке (л). */
+export const MIN_CLOSING_FUEL = 10;
+
+/** Если объём бака не указан — верхняя граница остатка. */
+export const DEFAULT_TANK_CAPACITY = 70;
+
+export function effectiveTankCapacity(объёмБака: number | '' | null | undefined): number {
+  const v = num(объёмБака);
+  return v > 0 ? v : DEFAULT_TANK_CAPACITY;
+}
+
+/** Остаток в баке: не меньше 10 л и не больше ёмкости. */
+export function clampFuelInTank(liters: number, capacity: number): number {
+  return round(Math.min(capacity, Math.max(MIN_CLOSING_FUEL, liters)), 2);
+}
+
+function clampShiftMileage(km: number, maxDailyKm: number, days: number): number {
+  const maxTotal = maxDailyKm * Math.max(1, days);
+  const minTotal = MIN_DAILY_KM * Math.max(1, days);
+  if (km <= 0) return 0;
+  return round(Math.min(maxTotal, Math.max(minTotal, km)), 1);
+}
+
+/** Максимальный расход (л) при сохранении остатка ≥ MIN_CLOSING_FUEL. */
+function maxBurnKeepingReserve(fuel: number): number {
+  return Math.max(0, round(fuel - MIN_CLOSING_FUEL, 2));
+}
+
+/** Пробег и расход с учётом лимитов км и доступного топлива. */
+function mileageAndBurnFromFuel(
+  desiredKm: number,
+  fuel: number,
+  C: number,
+  maxDailyKm: number,
+  days: number,
+): { probeg: number; burn: number } {
+  let probeg = clampShiftMileage(desiredKm, maxDailyKm, days);
+  let burn = round((probeg * C) / 100, 2);
+  const maxBurn = maxBurnKeepingReserve(fuel);
+
+  if (burn > maxBurn) {
+    burn = maxBurn;
+    probeg = C > 0 ? round((burn * 100) / C, 1) : 0;
+  }
+
+  if (probeg > 0 && probeg < MIN_DAILY_KM * Math.max(1, days)) {
+    const minKm = MIN_DAILY_KM * Math.max(1, days);
+    const minBurn = round((minKm * C) / 100, 2);
+    if (minBurn <= maxBurn) {
+      probeg = round(minKm, 1);
+      burn = minBurn;
+    } else {
+      probeg = 0;
+      burn = 0;
+    }
+  }
+
+  if (probeg > 0) {
+    probeg = clampShiftMileage(probeg, maxDailyKm, days);
+    burn = round((probeg * C) / 100, 2);
+    if (burn > maxBurn) {
+      burn = maxBurn;
+      probeg = C > 0 ? round((burn * 100) / C, 1) : 0;
+    }
+  }
+
+  return { probeg, burn };
+}
 
 /** Базовый расход по умолчанию, если пользователь не задал средний расход. */
 const DEFAULT_BASE_CONSUMPTION: Record<ВидТоплива, number> = {
@@ -236,7 +305,7 @@ function enforceMinSpread(parts: number[], totalKm: number): number[] {
   const next = [...parts];
   const minIdx = next.indexOf(min);
   const maxIdx = next.indexOf(max);
-  next[minIdx] = round(Math.max(1, next[minIdx] - bump), 1);
+  next[minIdx] = round(Math.max(MIN_DAILY_KM, next[minIdx] - bump), 1);
   next[maxIdx] = round(next[maxIdx] + bump, 1);
   let drift = round(totalKm - next.reduce((a, b) => a + b, 0), 1);
   next[next.length - 1] = round(next[next.length - 1] + drift, 1);
@@ -271,7 +340,7 @@ export function allocateVariedMileages(листы: ПутевойЛист[], tot
 
     const handoverBoost = handover ? (seededUnit(transitionSeed + 3) - 0.5) * spread * 0.6 : 0;
     const offset = (seededUnit(seed) - 0.5) * 2 * spread + handoverBoost;
-    raw.push(Math.max(1, avg + offset));
+    raw.push(Math.max(MIN_DAILY_KM, avg + offset));
   }
 
   return enforceMinSpread(normalizeKmParts(raw, totalKm), totalKm);
@@ -289,7 +358,7 @@ export function distributeDailyKm(totalKm: number, days: number, seed: number): 
   const raw: number[] = [];
   for (let i = 0; i < days; i++) {
     const offset = (seededUnit(seed + i + 1) - 0.5) * 2 * spread;
-    raw.push(Math.max(1, avg + offset));
+    raw.push(Math.max(MIN_DAILY_KM, avg + offset));
   }
   return enforceMinSpread(normalizeKmParts(raw, totalKm), totalKm);
 }
@@ -470,7 +539,10 @@ export function calculate(input: ВходныеДанные): Результат
   }
 
   const tankVolume = num(input.объёмБака);
-  if (tankVolume <= 0) warnings.push('Не задан объём бака ТС.');
+  const tankCap = effectiveTankCapacity(input.объёмБака);
+  if (tankVolume <= 0) {
+    warnings.push(`Не задан объём бака ТС — для лимитов остатка принят ${DEFAULT_TANK_CAPACITY} л.`);
+  }
 
   const maxDailyKm = MAX_DAILY_KM[input.типТС] ?? MAX_DAILY_KM.легковой;
   const формаПЛ: ФормаПЛ = input.формаПЛ ?? формаПоТипуТС(input.типТС);
@@ -506,9 +578,15 @@ export function calculate(input: ВходныеДанные): Результат
   }
 
   let tank = num(input.остатокНаНачало);
-  if (tank > tankVolume && tankVolume > 0) {
-    warnings.push('Начальный остаток топлива больше объёма бака — ограничено объёмом бака.');
-    tank = tankVolume;
+  if (tank > tankCap) {
+    warnings.push(`Начальный остаток топлива больше ёмкости бака — ограничено ${tankCap} л.`);
+    tank = tankCap;
+  }
+  if (tank > 0 && tank < MIN_CLOSING_FUEL) {
+    warnings.push(
+      `Остаток на начало периода (${round(tank, 1)} л) меньше ${MIN_CLOSING_FUEL} л — в расчёте принято ${MIN_CLOSING_FUEL} л.`,
+    );
+    tank = MIN_CLOSING_FUEL;
   }
 
   const odoKnown = input.одометрНаНачало !== '' && input.одометрНаНачало != null;
@@ -542,17 +620,17 @@ export function calculate(input: ВходныеДанные): Результат
         continue;
       }
 
-      const room = tankVolume > 0 ? tankVolume - tank : r.remaining;
-      const add = tankVolume > 0 ? Math.min(r.remaining, Math.max(0, room)) : r.remaining;
-      if (add <= 0 && tankVolume > 0) continue;
+      const room = tankCap - tank;
+      const add = Math.min(r.remaining, Math.max(0, room));
+      if (add <= 0) continue;
 
-      if (tankVolume > 0 && add < r.remaining) {
+      if (add < r.remaining) {
         warnings.push(
           `Заправка ${formatDateTime(r.when)} на ${r.volume} л превышает свободный объём бака — ` +
             `учтено ${round(add, 1)} л (остаток перенесён на следующую смену).`,
         );
       }
-      tank += add;
+      tank = clampFuelInTank(tank + add, tankCap);
       r.remaining = round(r.remaining - add, 2);
       shiftRefuelRecords.push({ event: r, volume: add });
     }
@@ -564,14 +642,15 @@ export function calculate(input: ВходныеДанные): Результат
 
     const maxFuelByKm = ((maxDailyKm * shift.days) * C) / 100;
     const target = shiftsLeft > 0 ? remainingBurnable / shiftsLeft : 0;
-    const maxByReserve = Math.max(0, tank - MIN_CLOSING_FUEL);
+    const maxByReserve = maxBurnKeepingReserve(tank);
 
     let burn = Math.min(target, maxFuelByKm, maxByReserve);
     if (burn < 0) burn = 0;
 
-    const mileage = (burn * 100) / C;
+    let mileage = C > 0 ? (burn * 100) / C : 0;
+    ({ probeg: mileage, burn } = mileageAndBurnFromFuel(mileage, tank, C, maxDailyKm, shift.days));
     const пробегПоДням = distributeDailyKm(mileage, shift.days, i + 1);
-    const closingFuel = round(tank - burn, 2);
+    const closingFuel = round(Math.min(tankCap, tank - burn), 2);
     const closingOdo = round(odo + mileage, 1);
 
     const { departure, returnDt, totalHours } = schedule;
@@ -620,12 +699,17 @@ export function calculate(input: ВходныеДанные): Результат
     );
   }
 
-  const finalSheets = rebalanceMileages(листы, C);
+  const finalSheets = rebalanceMileages(листы, C, maxDailyKm, tankCap);
   return { листы: finalSheets, предупреждения: warnings, расход: consumption };
 }
 
 /** Разносит пробег по односменным листам (день ко дню, с учётом смены водителя). */
-function rebalanceMileages(листы: ПутевойЛист[], C: number): ПутевойЛист[] {
+function rebalanceMileages(
+  листы: ПутевойЛист[],
+  C: number,
+  maxDailyKm: number,
+  tankCap: number,
+): ПутевойЛист[] {
   if (листы.length <= 1 || C <= 0) return листы;
   if (!листы.every((l) => l.пробегПоДням.length <= 1)) return листы;
 
@@ -639,21 +723,12 @@ function rebalanceMileages(листы: ПутевойЛист[], C: number): П�
     // Открывающий остаток берём из исходного расчёта (шаг 1) — там он уже
     // корректно учитывает время заправок в течение периода. Пересчитывать
     // его здесь сквозной переменной нельзя: заправки между листами она не видит.
-    const fuel = л.остатокВыдача;
-    let probeg = varied[i];
-    let burn = round((probeg * C) / 100, 2);
-
-    // Вариация пробега не должна уводить бак в минус: если на смену не хватает
-    // топлива (с учётом резерва, где это в принципе возможно), урезаем пробег
-    // до физически доступного, а не просто рисуем отрицательный остаток.
-    const affordable = Math.max(0, fuel - MIN_CLOSING_FUEL);
-    if (burn > affordable) {
-      burn = round(affordable, 2);
-      probeg = round((burn * 100) / C, 1);
-    }
+    const fuel = clampFuelInTank(л.остатокВыдача, tankCap);
+    const days = л.пробегПоДням.length || 1;
+    const { probeg, burn } = mileageAndBurnFromFuel(varied[i], fuel, C, maxDailyKm, days);
 
     const closingOdo = round(odo + probeg, 1);
-    const closingFuel = round(Math.max(0, fuel - burn), 2);
+    const closingFuel = round(Math.min(tankCap, fuel - burn), 2);
     const updated: ПутевойЛист = {
       ...л,
       пробег: probeg,
