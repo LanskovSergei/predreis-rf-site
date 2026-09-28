@@ -5,9 +5,9 @@ import { calculateSmart } from './api';
 import { downloadSheetsPdf } from './pdfExport';
 import { формаПоТипуТС, названиеФормы } from './formPl';
 import { PdfFormPages } from './pdfForms';
-
-const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-const jsDayToMonFirst = (jsDay: number) => (jsDay === 0 ? 6 : jsDay - 1);
+import { DatePickerField } from './DatePickerField';
+import { MonthCalendar } from './MonthCalendar';
+import { firstOfMonthISO, jsDayToMonFirst } from './dateCalendar';
 
 const МАРКИ_ПОДСКАЗКИ = [
   'ГАЗ', 'КамАЗ', 'УАЗ', 'ВАЗ (Lada)', 'Урал', 'МАЗ', 'ЗИЛ', 'ПАЗ', 'ЛиАЗ',
@@ -29,10 +29,6 @@ interface ДемоВодитель {
   фио: string;
   дни: Set<string>;
   viewMonth: string; // YYYY-MM — какой месяц открыт в календаре этого водителя
-}
-
-function firstOfMonthISO(iso: string): string {
-  return iso.slice(0, 7) + '-01';
 }
 
 function emptyDriver(периодС: string): ДемоВодитель {
@@ -212,74 +208,6 @@ function datesInPeriod(periodС: string, periodПо: string): Set<string> {
   return дни;
 }
 
-function MiniCalendar({
-  viewMonth,
-  selected,
-  periodС,
-  periodПо,
-  onToggle,
-  onViewMonthChange,
-}: {
-  viewMonth: string; // YYYY-MM-01
-  selected: Set<string>;
-  periodС: string;
-  periodПо: string;
-  onToggle: (iso: string) => void;
-  onViewMonthChange: (iso: string) => void;
-}) {
-  const base = parseISODate(viewMonth);
-  const year = base.getFullYear();
-  const month = base.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startOffset = jsDayToMonFirst(firstDay.getDay());
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: (string | null)[] = [];
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(toISODate(new Date(year, month, d)));
-
-  const monthLabel = base.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-  const periodDays = useMemo(() => datesInPeriod(periodС, periodПо), [periodС, periodПо]);
-
-  const shiftMonth = (delta: number) => {
-    const d = new Date(year, month + delta, 1);
-    onViewMonthChange(toISODate(d));
-  };
-
-  return (
-    <div className="mini-calendar">
-      <div className="mini-calendar__head">
-        <button type="button" className="icon-btn" onClick={() => shiftMonth(-1)} aria-label="Предыдущий месяц">
-          ‹
-        </button>
-        <span className="mini-calendar__label">{monthLabel}</span>
-        <button type="button" className="icon-btn" onClick={() => shiftMonth(1)} aria-label="Следующий месяц">
-          ›
-        </button>
-      </div>
-      <div className="mini-calendar__weekdays">
-        {WEEKDAY_LABELS.map((l) => (
-          <span key={l}>{l}</span>
-        ))}
-      </div>
-      <div className="mini-calendar__grid">
-        {cells.map((iso, i) =>
-          iso ? (
-            <button
-              type="button"
-              key={iso}
-              className={`mini-calendar__cell${selected.has(iso) ? ' active' : ''}${periodDays.has(iso) ? ' in-period' : ''}`}
-              onClick={() => onToggle(iso)}
-            >
-              {Number(iso.slice(8, 10))}
-            </button>
-          ) : (
-            <span key={`empty-${i}`} className="mini-calendar__cell mini-calendar__cell--empty" />
-          ),
-        )}
-      </div>
-    </div>
-  );
-}
 
 export function DemoApp() {
   const [state, setState] = useState<DemoState>(initialState);
@@ -575,11 +503,21 @@ export function DemoApp() {
             <div className="grid grid-dates">
               <div className="field field--wide">
                 <label>Период для расчёта путевых листов: с</label>
-                <input type="date" value={state.периодС} onChange={(e) => updPeriod('периодС', e.target.value)} />
+                <DatePickerField
+                  value={state.периодС}
+                  max={state.периодПо || undefined}
+                  aria-label="Дата начала периода"
+                  onChange={(iso) => updPeriod('периодС', iso)}
+                />
               </div>
               <div className="field field--wide">
                 <label>по</label>
-                <input type="date" value={state.периодПо} onChange={(e) => updPeriod('периодПо', e.target.value)} />
+                <DatePickerField
+                  value={state.периодПо}
+                  min={state.периодС || undefined}
+                  aria-label="Дата окончания периода"
+                  onChange={(iso) => updPeriod('периодПо', iso)}
+                />
               </div>
               <div className="field">
                 <label>Количество водителей</label>
@@ -616,11 +554,12 @@ export function DemoApp() {
                   )}
                 </div>
                 <p className="calendar-hint">Укажите рабочие дни водителя</p>
-                <MiniCalendar
+                <MonthCalendar
                   viewMonth={driver.viewMonth}
                   selected={driver.дни}
-                  periodС={state.периодС}
-                  periodПо={state.периодПо}
+                  highlightDays={datesInPeriod(state.периодС, state.периодПо)}
+                  min={state.периодС || undefined}
+                  max={state.периодПо || undefined}
                   onToggle={(iso) => toggleDriverDay(driverIdx, iso)}
                   onViewMonthChange={(iso) => setDriverViewMonth(driverIdx, iso)}
                 />
@@ -700,7 +639,14 @@ export function DemoApp() {
               </div>
               {state.заправки.map((r, idx) => (
                 <div className="refuel-row" key={idx}>
-                  <input type="date" value={r.дата} onChange={(e) => updRefuel(idx, { дата: e.target.value })} />
+                  <DatePickerField
+                    compact
+                    value={r.дата}
+                    min={state.периодС || undefined}
+                    max={state.периодПо || undefined}
+                    aria-label="Дата заправки"
+                    onChange={(iso) => updRefuel(idx, { дата: iso })}
+                  />
                   <input type="time" value={r.время} onChange={(e) => updRefuel(idx, { время: e.target.value })} />
                   <input
                     type="number"
@@ -808,11 +754,11 @@ export function DemoApp() {
             <div className="grid grid-dates">
               <div className="field field--wide">
                 <label>Период для расчёта: с</label>
-                <input type="date" value={state.периодС} readOnly className="input-readonly" />
+                <DatePickerField value={state.периодС} readOnly aria-label="Дата начала периода" />
               </div>
               <div className="field field--wide">
                 <label>по</label>
-                <input type="date" value={state.периодПо} readOnly className="input-readonly" />
+                <DatePickerField value={state.периодПо} readOnly aria-label="Дата окончания периода" />
               </div>
             </div>
             <div className="grid">
