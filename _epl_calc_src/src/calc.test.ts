@@ -123,8 +123,9 @@ describe('calculate mileage variation', () => {
 
 describe('calculate work hours', () => {
   it('uses 6-8 hour shift with return between 15:00 and 18:00', () => {
+    // Заправка в середине дня не должна сдвигать типовое расписание смены.
     const input = baseInput({
-      заправки: [{ дата: '2025-06-01', время: '08:00', объём: 40 }],
+      заправки: [{ дата: '2025-06-01', время: '11:00', объём: 40 }],
     });
     const result = calculate(input);
     expect(result.листы.length).toBeGreaterThan(0);
@@ -272,5 +273,82 @@ describe('allocateVariedMileages', () => {
     expect(parts.reduce((a, b) => a + b, 0)).toBeCloseTo(219.8, 1);
     expect(Math.max(...parts) - Math.min(...parts)).toBeGreaterThanOrEqual(10);
     expect(parts[1]).not.toBe(parts[0]);
+  });
+});
+
+describe('client feedback: receipt time, tank room, manual consumption', () => {
+  const minutes = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const timeOf = (dt: string) => dt.split(' ')[1];
+
+  it('keeps the receipt time and extends the shift to cover a late refuel', () => {
+    const result = calculate(baseInput({ заправки: [{ дата: '2025-06-01', время: '19:10', объём: 20 }] }));
+    const sheet = result.листы[0];
+    expect(sheet.заправки?.[0].время).toBe('19:10');
+    expect(minutes(timeOf(sheet.возвращение))).toBeGreaterThanOrEqual(minutes('19:10') + 15);
+    const span = (minutes(timeOf(sheet.возвращение)) - minutes(timeOf(sheet.выпуск))) / 60;
+    expect(sheet.общееВремя).toBeCloseTo(span, 1);
+  });
+
+  it('moves departure earlier for an early-morning refuel', () => {
+    const result = calculate(baseInput({ заправки: [{ дата: '2025-06-01', время: '07:30', объём: 20 }] }));
+    const sheet = result.листы[0];
+    expect(sheet.заправки?.[0].время).toBe('07:30');
+    expect(minutes('07:30') - minutes(timeOf(sheet.выпуск))).toBeGreaterThanOrEqual(15);
+  });
+
+  it('fits an end-of-shift refuel because fuel was burned during the day', () => {
+    const result = calculate(
+      baseInput({
+        объёмБака: 60,
+        остатокНаНачало: 50,
+        водители: [{ фио: 'Иванов И.И.', дни: new Set(['2025-06-01']) }],
+        заправки: [{ дата: '2025-06-01', время: '17:00', объём: 30 }],
+      }),
+    );
+    expect(result.предупреждения.some((w) => w.includes('не помещается'))).toBe(false);
+    expect(result.листы[0].заправки?.[0].объём).toBe(30);
+  });
+
+  it('uses the manual average consumption exactly, coefficients go to the norm only', () => {
+    const result = calculate(
+      baseInput({ среднийРасход: 11.5, видСообщения: 'городское', заправки: [{ дата: '2025-06-02', время: '12:00', объём: 30 }] }),
+    );
+    for (const l of result.листы) {
+      if (l.пробег <= 0) continue;
+      expect((l.расходФакт / l.пробег) * 100).toBeCloseTo(11.5, 1);
+      expect(l.расходНорма).toBeGreaterThan(l.расходФакт); // городское +10% к нормативу
+    }
+  });
+
+  it('keeps fuel continuous between sheets and hits the requested end residual', () => {
+    const result = calculate(
+      baseInput({
+        объёмБака: 60,
+        остатокНаНачало: 25,
+        остатокНаКонец: 20,
+        водители: [
+          { фио: 'Первый', дни: new Set(['2025-06-01', '2025-06-02']) },
+          { фио: 'Второй', дни: new Set(['2025-06-03', '2025-06-04']) },
+        ],
+        заправки: [
+          { дата: '2025-06-02', время: '16:40', объём: 35 },
+          { дата: '2025-06-04', время: '09:15', объём: 25 },
+        ],
+      }),
+    );
+    const sheets = result.листы;
+    for (let i = 1; i < sheets.length; i++) {
+      expect(sheets[i].остатокВыдача).toBeCloseTo(sheets[i - 1].остатокЗакрытие, 2);
+      expect(sheets[i].одометрВыдача).toBeCloseTo(sheets[i - 1].одометрЗакрытие, 1);
+    }
+    for (const l of sheets) {
+      const added = (l.заправки ?? []).reduce((s, z) => s + z.объём, 0);
+      expect(l.остатокЗакрытие).toBeCloseTo(l.остатокВыдача + added - l.расходФакт, 1);
+      expect(l.остатокЗакрытие).toBeGreaterThanOrEqual(MIN_CLOSING_FUEL - 0.01);
+    }
+    expect(sheets[sheets.length - 1].остатокЗакрытие).toBeCloseTo(20, 0);
   });
 });

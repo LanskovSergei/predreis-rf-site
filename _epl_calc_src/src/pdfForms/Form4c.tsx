@@ -127,7 +127,7 @@ export function Form4cPages({ d }: { d: ДанныеБланка }) {
           <tbody>
             <tr>
               <td><Val>{d.топливо}</Val></td>
-              <td><Val /></td>
+              <td><Val>{d.выдано}</Val></td>
               <td><Val>{d.остатокВыезд}</Val></td>
               <td><Val>{d.остатокВозврат}</Val></td>
               <td />

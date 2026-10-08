@@ -37,6 +37,13 @@ export const MIN_DAILY_KM = 5.9;
 /** Минимальный остаток топлива в баке (л). */
 export const MIN_CLOSING_FUEL = 10;
 
+/**
+ * Минимум в баке по ходу смены перед заправкой (л). Резерв MIN_CLOSING_FUEL —
+ * правило для остатка на закрытии листа; до заправки бак может опуститься ниже
+ * (водитель затем и едет на АЗС), но не до нуля.
+ */
+export const MIN_FUEL_BEFORE_REFUEL = 2;
+
 /** Если объём бака не указан — верхняя граница остатка. */
 export const DEFAULT_TANK_CAPACITY = 70;
 
@@ -391,6 +398,8 @@ interface RefuelEvent {
   remaining: number;
   /** Индекс смены для «осиротевших» заправок вне календаря водителей. */
   assignShift: number;
+  /** Время взято с чека и совпадает с днём смены — его нужно соблюсти. */
+  timeKnown: boolean;
 }
 
 // ------- Эффективный расход топлива -------
@@ -402,6 +411,7 @@ export function computeConsumption(input: ВходныеДанные, periodStar
     return {
       effective: base,
       base,
+      норматив: base,
       applied: [],
       note: 'Спецтехника: коэффициенты не применяются, задан ручной расход.',
     };
@@ -459,16 +469,26 @@ export function computeConsumption(input: ВходныеДанные, periodStar
     applied.push({ name: `Вид сообщения: ${input.видСообщения}`, value: commCoeff });
   }
 
+  const норматив = round(base * multiplier, 2);
+
+  // Ручной и вычисленный по одометру расход — это ФАКТИЧЕСКИЙ расход машины,
+  // коэффициенты (город, зима, прицеп…) в нём уже «сидят». Накладывать их ещё раз
+  // нельзя — иначе введённое пользователем значение фактически игнорируется.
+  // Коэффициенты применяются только к нормативу (графа «расход по норме»)
+  // и к нормативу по умолчанию, когда реальный расход неизвестен.
+  const effective = baseNote === 'default' ? норматив : round(base, 2);
+
   return {
-    effective: round(base * multiplier, 2),
+    effective,
     base,
+    норматив,
     applied,
     note:
       baseNote === 'manual'
-        ? 'База — ручной средний расход, применены коэффициенты.'
+        ? 'Фактический расход — как указан пользователем; коэффициенты применены только к нормативу.'
         : baseNote === 'estimated'
-          ? 'База — расход, вычисленный по факту (пробег по одометру и объём заправок за период), применены коэффициенты.'
-          : `База — норматив по умолчанию для «${input.видТоплива}», применены коэффициенты.`,
+          ? 'Фактический расход вычислен по одометру и заправкам; коэффициенты применены только к нормативу.'
+          : `Расход — норматив по умолчанию для «${input.видТоплива}» с коэффициентами.`,
   };
 }
 
@@ -553,11 +573,13 @@ export function calculate(input: ВходныеДанные): Результат
     return { листы: [], предупреждения: warnings, расход: consumption };
   }
 
-  // Заправки, отсортированные по дате/времени
+  // Заправки, отсортированные по дате/времени. Время берём с чека: оно реальное
+  // и должно попасть в рабочую смену водителя.
   const refuels: RefuelEvent[] = input.заправки
     .filter((r) => r.дата && num(r.объём) > 0)
     .map((r) => {
-      const when = new Date(`${r.дата}T${r.время || '00:00'}`);
+      const timeKnown = Boolean(r.время && /^\d{1,2}:\d{2}$/.test(r.время));
+      const when = new Date(`${r.дата}T${timeKnown ? r.время.padStart(5, '0') : '12:00'}`);
       const volume = num(r.объём);
       const inShift = shifts.findIndex((s) => shiftContainsDate(s, r.дата));
       return {
@@ -566,6 +588,8 @@ export function calculate(input: ВходныеДанные): Результат
         address: (r.адрес || '').trim(),
         remaining: volume,
         assignShift: inShift >= 0 ? inShift : nearestShiftIndex(shifts, when),
+        // Время с чека соблюдаем только если день заправки совпадает со сменой.
+        timeKnown: timeKnown && inShift >= 0,
       };
     })
     .sort((a, b) => a.when.getTime() - b.when.getTime());
@@ -582,12 +606,18 @@ export function calculate(input: ВходныеДанные): Результат
     warnings.push(`Начальный остаток топлива больше ёмкости бака — ограничено ${tankCap} л.`);
     tank = tankCap;
   }
-  if (tank > 0 && tank < MIN_CLOSING_FUEL) {
+  if (tank < MIN_CLOSING_FUEL) {
     warnings.push(
       `Остаток на начало периода (${round(tank, 1)} л) меньше ${MIN_CLOSING_FUEL} л — в расчёте принято ${MIN_CLOSING_FUEL} л.`,
     );
     tank = MIN_CLOSING_FUEL;
   }
+
+  // Цель на конец периода: остаток, который указал пользователь (не ниже резерва).
+  const endKnown = input.остатокНаКонец !== '' && input.остатокНаКонец != null;
+  const endTarget = endKnown
+    ? Math.min(tankCap, Math.max(MIN_CLOSING_FUEL, num(input.остатокНаКонец)))
+    : MIN_CLOSING_FUEL;
 
   const odoKnown = input.одометрНаНачало !== '' && input.одометрНаНачало != null;
   let odo = odoKnown ? num(input.одометрНаНачало) : 2500; // ТЗ: неизвестен → от 2500 км
@@ -595,88 +625,146 @@ export function calculate(input: ВходныеДанные): Результат
     warnings.push('Показания одометра на начало не заданы — расчёт начат с 2500 км (по ТЗ).');
   }
 
-  const totalFuel = tank + refuels.reduce((s, r) => s + r.volume, 0);
-  let remainingBurnable = Math.max(0, totalFuel - MIN_CLOSING_FUEL);
-
+  const нормативРасхода = consumption.норматив ?? C;
+  const { weights, capFactors } = shiftWeights(shifts);
   const листы: ПутевойЛист[] = [];
 
   for (let i = 0; i < shifts.length; i++) {
     const shift = shifts[i];
-    const shiftsLeft = shifts.length - i;
-
-    const shiftEndDate = addDays(shift.start, shift.days - 1);
-    const shiftEndBoundary = new Date(`${toISODate(shiftEndDate)}T23:59`);
-    const schedule = buildShiftSchedule(shift, i, input.видСообщения);
-    const shiftRefuelRecords: { event: RefuelEvent; volume: number }[] = [];
-
-    for (const r of refuels) {
-      if (r.remaining <= 0) continue;
-      const inRange = shiftContainsDate(shift, toISODate(r.when));
-      const onAssignedShift = r.assignShift === i;
-      if (!inRange && !onAssignedShift) continue;
-      if (!inRange && onAssignedShift && r.when > shiftEndBoundary) {
-        // осиротевшая заправка — учитываем в назначенной смене
-      } else if (inRange && r.when > shiftEndBoundary) {
-        continue;
-      }
-
-      const room = tankCap - tank;
-      const add = Math.min(r.remaining, Math.max(0, room));
-      if (add <= 0) continue;
-
-      if (add < r.remaining) {
-        warnings.push(
-          `Заправка ${formatDateTime(r.when)} на ${r.volume} л превышает свободный объём бака — ` +
-            `учтено ${round(add, 1)} л (остаток перенесён на следующую смену).`,
-        );
-      }
-      tank = clampFuelInTank(tank + add, tankCap);
-      r.remaining = round(r.remaining - add, 2);
-      shiftRefuelRecords.push({ event: r, volume: add });
-    }
-
-    const заправкиНаЛисте = assignRefuelTimes(shiftRefuelRecords, schedule, scheduleSeed(shift, i));
-
+    const seed = scheduleSeed(shift, i);
     const openingFuel = tank;
     const openingOdo = odo;
 
-    const maxFuelByKm = ((maxDailyKm * shift.days) * C) / 100;
-    const target = shiftsLeft > 0 ? remainingBurnable / shiftsLeft : 0;
-    const maxByReserve = maxBurnKeepingReserve(tank);
+    // --- Расписание смены: подгоняем под реальное время заправок с чеков ---
+    const recs = refuels.filter((r) => r.assignShift === i);
+    const known = recs.filter((r) => r.timeKnown);
+    const schedule = fitScheduleToRefuels(buildShiftSchedule(shift, i, input.видСообщения), known, seed);
+    // Заправки без времени (или с дня вне смены) раскладываем синтетически:
+    // если по дате она позже смены — ближе к возврату, иначе — после выезда.
+    const unknown = recs.filter((r) => !r.timeKnown);
+    const shiftLastDay = toISODate(addDays(shift.start, shift.days - 1));
+    const late = unknown.filter((r) => toISODate(r.when) > shiftLastDay);
+    const early = unknown.filter((r) => toISODate(r.when) <= shiftLastDay);
+    if (early.length > 0) assignRefuelTimes(early.map((event) => ({ event, volume: event.volume })), schedule, seed);
+    late.forEach((r, k) => {
+      const back = (30 + Math.floor(seededUnit(seed + 21 + k) * 16) + k * 20) * 60000;
+      r.when = new Date(Math.max(schedule.departure.getTime() + 15 * 60000, schedule.returnDt.getTime() - back));
+      r.when.setSeconds(0, 0);
+    });
+    recs.sort((a, b) => a.when.getTime() - b.when.getTime());
 
-    let burn = Math.min(target, maxFuelByKm, maxByReserve);
-    if (burn < 0) burn = 0;
+    const span = Math.max(1, schedule.returnDt.getTime() - schedule.departure.getTime());
+    const fractions = recs.map((r) =>
+      Math.min(1, Math.max(0, (r.when.getTime() - schedule.departure.getTime()) / span)),
+    );
+
+    // --- Сколько топлива «положено» сжечь за смену ---
+    // Всё оставшееся топливо (текущее + будущие заправки) минус цель на конец,
+    // делим пропорционально весам оставшихся смен (вес даёт разброс по дням).
+    const futureFuel = refuels
+      .filter((r) => r.assignShift >= i)
+      .reduce((sum, r) => sum + r.remaining, 0);
+    const remainingBurnable = Math.max(0, openingFuel + futureFuel - endTarget);
+    const weightLeft = weights.slice(i).reduce((a, b) => a + b, 0);
+    const target = weightLeft > 0 ? (remainingBurnable * weights[i]) / weightLeft : 0;
+    const shiftMaxDailyKm = maxDailyKm * capFactors[i];
+    const maxFuelByKm = (shiftMaxDailyKm * shift.days * C) / 100;
+
+    // --- Расход идёт по ходу смены: место в баке считаем на момент заправки ---
+    const simulate = (burn: number) => {
+      const adds: number[] = [];
+      let addedSoFar = 0;
+      let allowed = Number.POSITIVE_INFINITY; // макс. расход, при котором бак не опустеет до заправки
+      let shortfallBurn = 0; // доп. расход до заправки, чтобы она поместилась
+      for (let k = 0; k < recs.length; k++) {
+        const f = fractions[k];
+        if (f > 0) allowed = Math.min(allowed, (openingFuel + addedSoFar - MIN_FUEL_BEFORE_REFUEL) / f);
+        const levelAtRefuel = openingFuel + addedSoFar - burn * f;
+        const room = Math.max(0, tankCap - levelAtRefuel);
+        const add = Math.min(recs[k].remaining, room);
+        if (add < recs[k].remaining - 0.01 && f > 0) {
+          shortfallBurn = Math.max(shortfallBurn, (recs[k].remaining - add) / f);
+        }
+        adds.push(add);
+        addedSoFar += add;
+      }
+      allowed = Math.min(allowed, openingFuel + addedSoFar - MIN_CLOSING_FUEL);
+      return { adds, added: addedSoFar, allowed: Math.max(0, allowed), shortfallBurn };
+    };
+
+    let burn = Math.min(target, maxFuelByKm);
+    for (let iter = 0; iter < 4; iter++) {
+      const sim = simulate(burn);
+      let next = Math.min(burn, sim.allowed);
+      // Заправка не влезает в бак → значит, до неё машина успела откатать больше.
+      if (sim.shortfallBurn > 0) next = Math.min(maxFuelByKm, sim.allowed, burn + sim.shortfallBurn);
+      if (Math.abs(next - burn) < 0.01) {
+        burn = next;
+        break;
+      }
+      burn = next;
+    }
+    burn = Math.max(0, burn);
 
     let mileage = C > 0 ? (burn * 100) / C : 0;
-    ({ probeg: mileage, burn } = mileageAndBurnFromFuel(mileage, tank, C, maxDailyKm, shift.days));
-    const пробегПоДням = distributeDailyKm(mileage, shift.days, i + 1);
-    const closingFuel = round(Math.min(tankCap, tank - burn), 2);
-    const closingOdo = round(odo + mileage, 1);
+    const available = openingFuel + simulate(burn).added;
+    ({ probeg: mileage, burn } = mileageAndBurnFromFuel(mileage, available, C, shiftMaxDailyKm, shift.days));
 
-    const { departure, returnDt, totalHours } = schedule;
+    // Сверка резерва на закрытии. Меньший расход = меньше места под заправку,
+    // поэтому сводим до сходимости, а пробег пересчитываем от итогового расхода.
+    let { adds, added } = simulate(burn);
+    for (let iter = 0; iter < 6 && openingFuel + added - burn < MIN_CLOSING_FUEL - 0.005; iter++) {
+      burn = Math.max(0, openingFuel + added - MIN_CLOSING_FUEL);
+      ({ adds, added } = simulate(burn));
+    }
+    if (openingFuel + added - burn < MIN_CLOSING_FUEL - 0.005) burn = Math.max(0, openingFuel + added - MIN_CLOSING_FUEL);
+    burn = Math.floor(burn * 100) / 100;
+    mileage = C > 0 ? Math.floor(((burn * 100) / C) * 10) / 10 : 0;
+
+    const заправкиНаЛисте: ЗаправкаНаЛисте[] = [];
+    recs.forEach((r, k) => {
+      const add = round(adds[k], 2);
+      if (add < r.remaining - 0.01) {
+        warnings.push(
+          `Заправка ${formatDateTime(r.when)} на ${r.volume} л не помещается в бак ${tankCap} л — ` +
+            `учтено ${round(add, 1)} л. Проверьте объём бака и остатки.`,
+        );
+      }
+      r.remaining = round(r.remaining - add, 2);
+      if (add > 0) {
+        заправкиНаЛисте.push({
+          время: `${pad2(r.when.getHours())}:${pad2(r.when.getMinutes())}`,
+          объём: add,
+          адрес: r.address || undefined,
+        });
+      }
+    });
+
+    const closingFuel = round(Math.min(tankCap, openingFuel + added - burn), 2);
+    const closingOdo = round(openingOdo + mileage, 1);
+    const пробегПоДням = shift.days > 1 ? distributeDailyKm(mileage, shift.days, i + 1) : [round(mileage, 1)];
 
     const маршрут: string[] = [];
     if (input.адресСтоянки) маршрут.push(input.адресСтоянки);
     for (const z of заправкиНаЛисте) {
-      const label = z.адрес ? `АЗС (${z.время}): ${z.адрес}` : `АЗС (${z.время})`;
-      маршрут.push(label);
+      маршрут.push(z.адрес ? `АЗС (${z.время}): ${z.адрес}` : `АЗС (${z.время})`);
     }
     if (input.адресСтоянки) маршрут.push(input.адресСтоянки);
 
     листы.push({
       номер: i + 1,
       формаПЛ,
-      выпуск: formatDateTime(departure),
-      возвращение: formatDateTime(returnDt),
+      выпуск: formatDateTime(schedule.departure),
+      возвращение: formatDateTime(schedule.returnDt),
       водитель: shift.driver,
-      общееВремя: totalHours,
+      общееВремя: schedule.totalHours,
       одометрВыдача: round(openingOdo, 1),
       одометрЗакрытие: closingOdo,
       пробег: round(mileage, 1),
       пробегПоДням,
       остатокВыдача: round(openingFuel, 2),
       остатокЗакрытие: closingFuel,
-      расходНорма: round(burn, 2),
+      расходНорма: round((mileage * нормативРасхода) / 100, 2),
       расходФакт: round(burn, 2),
       видСообщения: input.видСообщения,
       маршрут,
@@ -685,62 +773,65 @@ export function calculate(input: ВходныеДанные): Результат
 
     tank = closingFuel;
     odo = closingOdo;
-    remainingBurnable = Math.max(0, remainingBurnable - burn);
   }
 
   if (refuels.some((r) => r.remaining > 0.01)) {
     warnings.push('Не все заправки удалось учесть в расчёте — проверьте объём бака и рабочие дни.');
   }
 
-  if (tank > MIN_CLOSING_FUEL + 0.5) {
+  if (tank > endTarget + 0.5) {
     warnings.push(
-      `После распределения в баке осталось ${round(tank, 1)} л. Не всё топливо реализовано ` +
-        `в рамках лимитов пробега/смен — добавьте рабочие дни, увеличьте срок рейса или скорректируйте данные.`,
+      `После распределения в баке осталось ${round(tank, 1)} л (цель — ${round(endTarget, 1)} л). Не всё топливо ` +
+        `реализовано в рамках лимитов пробега/смен — добавьте рабочие дни, увеличьте срок рейса или скорректируйте данные.`,
     );
   }
 
-  const finalSheets = rebalanceMileages(листы, C, maxDailyKm, tankCap);
-  return { листы: finalSheets, предупреждения: warnings, расход: consumption };
+  return { листы, предупреждения: warnings, расход: consumption };
 }
 
-/** Разносит пробег по односменным листам (день ко дню, с учётом смены водителя). */
-function rebalanceMileages(
-  листы: ПутевойЛист[],
-  C: number,
-  maxDailyKm: number,
-  tankCap: number,
-): ПутевойЛист[] {
-  if (листы.length <= 1 || C <= 0) return листы;
-  if (!листы.every((l) => l.пробегПоДням.length <= 1)) return листы;
+/**
+ * Веса смен для распределения топлива: дают разброс пробега день ко дню
+ * (в том числе на смене водителя) и учитывают длину многодневных рейсов.
+ * Распределение встроено в основной проход, поэтому остаток топлива и одометр
+ * всегда непрерывны от листа к листу.
+ */
+function shiftWeights(shifts: Смена[]): { weights: number[]; capFactors: number[] } {
+  if (shifts.length <= 1) return { weights: shifts.map((s) => Math.max(1, s.days)), capFactors: shifts.map(() => 1) };
+  const pseudo = shifts.map(
+    (s) => ({ водитель: s.driver, выпуск: formatDateTime(s.start) }) as unknown as ПутевойЛист,
+  );
+  const factors = allocateVariedMileages(pseudo, 1000 * shifts.length).map((p) => Math.max(0.05, p / 1000));
+  const maxFactor = Math.max(...factors);
+  return {
+    weights: factors.map((f, i) => f * Math.max(1, shifts[i].days)),
+    // Потолок пробега тоже варьируем (80–100%), иначе при избытке топлива
+    // все листы упираются в один и тот же максимум и выглядят одинаково.
+    capFactors: factors.map((f) => Math.min(1, Math.max(0.8, f / maxFactor))),
+  };
+}
 
-  const totalKm = листы.reduce((s, l) => s + l.пробег, 0);
-  if (totalKm <= 0) return листы;
+/**
+ * Время заправки с чека должно попасть в рабочую смену: выезд — не позже чем
+ * за 15 мин до первой заправки, возврат — не раньше чем через 15 мин после последней.
+ */
+function fitScheduleToRefuels(schedule: ShiftSchedule, known: RefuelEvent[], seed: number): ShiftSchedule {
+  if (known.length === 0) return schedule;
+  const times = known.map((r) => r.when.getTime());
+  const first = Math.min(...times);
+  const last = Math.max(...times);
+  let departure = schedule.departure;
+  let returnDt = schedule.returnDt;
 
-  const varied = allocateVariedMileages(листы, totalKm);
-  let odo = листы[0].одометрВыдача;
-
-  return листы.map((л, i) => {
-    // Открывающий остаток берём из исходного расчёта (шаг 1) — там он уже
-    // корректно учитывает время заправок в течение периода. Пересчитывать
-    // его здесь сквозной переменной нельзя: заправки между листами она не видит.
-    const fuel = clampFuelInTank(л.остатокВыдача, tankCap);
-    const days = л.пробегПоДням.length || 1;
-    const { probeg, burn } = mileageAndBurnFromFuel(varied[i], fuel, C, maxDailyKm, days);
-
-    const closingOdo = round(odo + probeg, 1);
-    const closingFuel = round(Math.min(tankCap, fuel - burn), 2);
-    const updated: ПутевойЛист = {
-      ...л,
-      пробег: probeg,
-      пробегПоДням: [probeg],
-      одометрВыдача: round(odo, 1),
-      одометрЗакрытие: closingOdo,
-      остатокВыдача: round(fuel, 2),
-      остатокЗакрытие: closingFuel,
-      расходНорма: burn,
-      расходФакт: burn,
-    };
-    odo = closingOdo;
-    return updated;
-  });
+  if (first - departure.getTime() < 15 * 60000) {
+    const lead = (15 + Math.floor(seededUnit(seed + 11) * 11)) * 60000; // 15–25 мин до АЗС
+    departure = new Date(first - lead);
+    departure.setSeconds(0, 0);
+  }
+  if (returnDt.getTime() - last < 15 * 60000) {
+    const tail = (15 + Math.floor(seededUnit(seed + 13) * 21)) * 60000; // 15–35 мин до гаража
+    returnDt = new Date(last + tail);
+    returnDt.setSeconds(0, 0);
+  }
+  const totalHours = round((returnDt.getTime() - departure.getTime()) / 3600000, 1);
+  return { departure, returnDt, totalHours };
 }

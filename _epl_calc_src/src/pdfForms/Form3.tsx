@@ -104,6 +104,10 @@ export function Form3Pages({ d }: { d: ДанныеБланка }) {
                 <td><Val>{d.топливо}</Val></td>
               </tr>
               <tr>
+                <td className="pl-label">Выдано (по заправочному листу), л</td>
+                <td><Val>{d.выдано}</Val></td>
+              </tr>
+              <tr>
                 <td className="pl-label">Остаток при выезде, л</td>
                 <td><Val>{d.остатокВыезд}</Val></td>
               </tr>
@@ -118,6 +122,14 @@ export function Form3Pages({ d }: { d: ДанныеБланка }) {
               <tr>
                 <td className="pl-label">Расход: фактически, л</td>
                 <td><Val>{d.расходФакт}</Val></td>
+              </tr>
+              <tr>
+                <td className="pl-label">Экономия, л</td>
+                <td><Val>{d.экономия}</Val></td>
+              </tr>
+              <tr>
+                <td className="pl-label">Перерасход, л</td>
+                <td><Val>{d.перерасход}</Val></td>
               </tr>
             </tbody>
           </table>
@@ -195,7 +207,6 @@ export function Form3Pages({ d }: { d: ДанныеБланка }) {
             {Array.from({ length: Math.max(0, 6 - d.пробегПоДням.length) }, (_, i) => (
               <tr key={`empty-${i}`}>
                 <td>{d.пробегПоДням.length + i + 1}</td>
-                <td />
                 <td />
                 <td />
                 <td />
