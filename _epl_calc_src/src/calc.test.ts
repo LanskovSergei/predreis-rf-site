@@ -292,6 +292,37 @@ describe('client feedback: receipt time, tank room, manual consumption', () => {
     expect(sheet.общееВремя).toBeCloseTo(span, 1);
   });
 
+  it('keeps a 6–8 h shift and moves it to the evening for a 20:00 refuel', () => {
+    const result = calculate(baseInput({ заправки: [{ дата: '2025-06-01', время: '20:00', объём: 20 }] }));
+    const sheet = result.листы[0];
+    expect(sheet.общееВремя).toBeGreaterThanOrEqual(6);
+    expect(sheet.общееВремя).toBeLessThanOrEqual(8.5);
+    expect(minutes(timeOf(sheet.выпуск))).toBeGreaterThanOrEqual(minutes('11:00'));
+    expect(minutes(timeOf(sheet.возвращение))).toBeGreaterThanOrEqual(minutes('20:15'));
+  });
+
+  it('keeps a 6–8 h shift for an early-morning refuel', () => {
+    const result = calculate(baseInput({ заправки: [{ дата: '2025-06-01', время: '06:00', объём: 20 }] }));
+    const sheet = result.листы[0];
+    expect(sheet.общееВремя).toBeGreaterThanOrEqual(6);
+    expect(sheet.общееВремя).toBeLessThanOrEqual(8.5);
+    expect(minutes('06:00') - minutes(timeOf(sheet.выпуск))).toBeGreaterThanOrEqual(15);
+  });
+
+  it('stretches the shift only when refuels are spread wider than a shift', () => {
+    const result = calculate(
+      baseInput({
+        заправки: [
+          { дата: '2025-06-01', время: '07:00', объём: 10 },
+          { дата: '2025-06-01', время: '21:00', объём: 10 },
+        ],
+      }),
+    );
+    const sheet = result.листы[0];
+    expect(sheet.общееВремя).toBeGreaterThan(14);
+    expect(sheet.заправки?.map((z) => z.время)).toEqual(['07:00', '21:00']);
+  });
+
   it('moves departure earlier for an early-morning refuel', () => {
     const result = calculate(baseInput({ заправки: [{ дата: '2025-06-01', время: '07:30', объём: 20 }] }));
     const sheet = result.листы[0];

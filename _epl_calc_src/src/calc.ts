@@ -811,27 +811,43 @@ function shiftWeights(shifts: Смена[]): { weights: number[]; capFactors: nu
 }
 
 /**
- * Время заправки с чека должно попасть в рабочую смену: выезд — не позже чем
- * за 15 мин до первой заправки, возврат — не раньше чем через 15 мин после последней.
+ * Время заправки с чека должно попасть в рабочую смену. Длительность смены
+ * (6–8 ч) сохраняем: окно СДВИГАЕМ так, чтобы заправки оказались внутри
+ * (выезд ≥15 мин до первой, возврат ≥15 мин после последней). Растягиваем
+ * смену, только если сами заправки разнесены шире, чем длится смена.
  */
 function fitScheduleToRefuels(schedule: ShiftSchedule, known: RefuelEvent[], seed: number): ShiftSchedule {
   if (known.length === 0) return schedule;
   const times = known.map((r) => r.when.getTime());
   const first = Math.min(...times);
   const last = Math.max(...times);
-  let departure = schedule.departure;
-  let returnDt = schedule.returnDt;
+  const lead = (15 + Math.floor(seededUnit(seed + 11) * 11)) * 60000; // 15–25 мин до АЗС
+  const tail = (15 + Math.floor(seededUnit(seed + 13) * 21)) * 60000; // 15–35 мин до гаража
+  const duration = schedule.returnDt.getTime() - schedule.departure.getTime();
 
-  if (first - departure.getTime() < 15 * 60000) {
-    const lead = (15 + Math.floor(seededUnit(seed + 11) * 11)) * 60000; // 15–25 мин до АЗС
-    departure = new Date(first - lead);
-    departure.setSeconds(0, 0);
+  let dep = schedule.departure.getTime();
+  let ret = schedule.returnDt.getTime();
+  const needFrom = first - lead;
+  const needTo = last + tail;
+
+  if (needTo - needFrom > duration) {
+    // Заправки разнесены шире обычной смены — смена от первой до последней.
+    dep = needFrom;
+    ret = needTo;
+  } else if (dep > needFrom) {
+    // Ранняя заправка — смена начинается раньше, длительность прежняя.
+    dep = needFrom;
+    ret = dep + duration;
+  } else if (ret < needTo) {
+    // Поздняя заправка — смена сдвигается на вечер, длительность прежняя.
+    ret = needTo;
+    dep = ret - duration;
   }
-  if (returnDt.getTime() - last < 15 * 60000) {
-    const tail = (15 + Math.floor(seededUnit(seed + 13) * 21)) * 60000; // 15–35 мин до гаража
-    returnDt = new Date(last + tail);
-    returnDt.setSeconds(0, 0);
-  }
+
+  const departure = new Date(dep);
+  departure.setSeconds(0, 0);
+  const returnDt = new Date(ret);
+  returnDt.setSeconds(0, 0);
   const totalHours = round((returnDt.getTime() - departure.getTime()) / 3600000, 1);
   return { departure, returnDt, totalHours };
 }

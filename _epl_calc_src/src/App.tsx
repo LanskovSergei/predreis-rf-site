@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { ВидСообщения, ВидТоплива, ВходныеДанные, Водитель, Заправка, РезультатРасчёта, ТипТС } from './types';
 import { parseISODate, toISODate } from './calc';
 import { calculateSmart } from './api';
+import { DecimalInput } from './DecimalInput';
 import { downloadSheetsPdf } from './pdfExport';
 import { формаПоТипуТС, названиеФормы } from './formPl';
 import { PdfFormPages } from './pdfForms';
@@ -92,10 +93,6 @@ function initialState(): DemoState {
     видСообщения: 'городское',
     срокРейсаДней: '',
   };
-}
-
-function numField(value: string): number | '' {
-  return value === '' ? '' : Number(value);
 }
 
 /** Все даты периода [с; по], которые приходятся на будние дни (Пн–Пт). */
@@ -605,11 +602,10 @@ export function DemoApp() {
                 <label>
                   Объём бака ТС, л <span className="hint">(необязательно)</span>
                 </label>
-                <input
-                  type="number"
+                <DecimalInput
                   min={0}
                   value={state.объёмБака}
-                  onChange={(e) => upd('объёмБака', numField(e.target.value))}
+                  onChange={(v) => upd('объёмБака', v)}
                   placeholder="Напр., 70"
                 />
               </div>
@@ -648,12 +644,10 @@ export function DemoApp() {
                     onChange={(iso) => updRefuel(idx, { дата: iso })}
                   />
                   <input type="time" value={r.время} onChange={(e) => updRefuel(idx, { время: e.target.value })} />
-                  <input
-                    type="number"
+                  <DecimalInput
                     min={0}
-                    step={0.1}
                     value={r.объём}
-                    onChange={(e) => updRefuel(idx, { объём: numField(e.target.value) })}
+                    onChange={(v) => updRefuel(idx, { объём: v })}
                     placeholder="л"
                   />
                   <button type="button" className="icon-btn" onClick={() => removeRefuel(idx)} aria-label="Удалить заправку">
@@ -675,21 +669,19 @@ export function DemoApp() {
             </h2>
             <div className="field field--full">
               <label>Одометр на начало периода, км</label>
-              <input
-                type="number"
+              <DecimalInput
                 min={0}
                 value={state.одометрНаНачало}
-                onChange={(e) => upd('одометрНаНачало', numField(e.target.value))}
+                onChange={(v) => upd('одометрНаНачало', v)}
               />
             </div>
             <div className="grid-or">
               <div className="field">
                 <label>Одометр на конец периода, км</label>
-                <input
-                  type="number"
+                <DecimalInput
                   min={state.одометрНаНачало !== '' ? Number(state.одометрНаНачало) + 1 : 0}
                   value={state.одометрНаКонец}
-                  onChange={(e) => upd('одометрНаКонец', numField(e.target.value))}
+                  onChange={(v) => upd('одометрНаКонец', v)}
                   placeholder="Если известно"
                 />
               </div>
@@ -709,12 +701,10 @@ export function DemoApp() {
                     </span>
                   </span>
                 </label>
-                <input
-                  type="number"
+                <DecimalInput
                   min={0}
-                  step={0.1}
                   value={state.среднийРасход}
-                  onChange={(e) => upd('среднийРасход', numField(e.target.value))}
+                  onChange={(v) => upd('среднийРасход', v)}
                   placeholder="Если знаете точно"
                 />
               </div>
@@ -733,12 +723,10 @@ export function DemoApp() {
                   <label>
                     Срок рейса, дней <span className="hint">(на весь рейс, а не по дням)</span>
                   </label>
-                  <input
-                    type="number"
+                  <DecimalInput
                     min={1}
-                    step={1}
                     value={state.срокРейсаДней}
-                    onChange={(e) => upd('срокРейсаДней', numField(e.target.value))}
+                    onChange={(v) => upd('срокРейсаДней', v)}
                     placeholder="Напр., 3"
                   />
               </div>
@@ -764,21 +752,19 @@ export function DemoApp() {
             <div className="grid">
               <div className="field">
                 <label>Остаток топлива в баке на начало периода, л</label>
-                <input
-                  type="number"
+                <DecimalInput
                   min={0}
                   value={state.остатокНаНачало}
-                  onChange={(e) => upd('остатокНаНачало', numField(e.target.value))}
+                  onChange={(v) => upd('остатокНаНачало', v)}
                   placeholder="Напр., 15"
                 />
               </div>
               <div className="field">
                 <label>Остаток топлива в баке на конец периода, л</label>
-                <input
-                  type="number"
+                <DecimalInput
                   min={0}
                   value={state.остатокНаКонец}
-                  onChange={(e) => upd('остатокНаКонец', numField(e.target.value))}
+                  onChange={(v) => upd('остатокНаКонец', v)}
                   placeholder="Напр., 15"
                 />
               </div>
