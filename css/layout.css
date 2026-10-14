@@ -893,9 +893,45 @@
   max-width: 380px;
 }
 
-@media (max-width: 992px) {
+/* Телефоны и планшеты: текст не помещается поверх иллюстрации (обрезался
+   и наезжал на рисунок) — ставим его над картинкой, а картинку целиком под ним. */
+@media (max-width: 991px) {
+  #intro {
+    display: flex;
+    flex-direction: column;
+    background-color: #00014a; /* цвет фона самой иллюстрации — без шва */
+  }
+
+  #intro .pr-intro__container {
+    position: static;
+    order: 0;
+    height: auto;
+  }
+
+  #intro .pr-intro__bg {
+    order: 1;
+  }
+
   #intro .pr-intro__content {
-    grid-template-columns: minmax(0, 44%) minmax(0, 36%) minmax(0, 1fr);
+    display: block;
+    height: auto;
+    padding: 36px 24px 4px;
+  }
+
+  #intro .pr-intro__content h1 {
+    font-size: clamp(24px, 6.4vw, 36px);
+    line-height: 1.3;
+    margin: 0 0 14px;
+  }
+
+  #intro .pr-intro__content h1 .pr-intro__line {
+    white-space: normal;
+  }
+
+  #intro .pr-intro__content p {
+    font-size: 15px;
+    margin: 0;
+    max-width: 520px;
   }
 }
 
@@ -904,24 +940,8 @@
     --pr-gutter: 20px;
   }
 
-  #intro {
-    min-height: 0;
-  }
-
   #intro .pr-intro__content {
-    display: block;
-    padding: 50px 20px;
-  }
-
-  #intro .pr-intro__content h1 {
-    font-size: 28px;
-    margin: 0 0 16px;
-  }
-
-  #intro .pr-intro__content p {
-    font-size: 15px;
-    margin: 0;
-    max-width: none;
+    padding: 28px 20px 4px;
   }
 }
 
