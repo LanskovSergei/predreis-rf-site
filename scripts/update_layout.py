@@ -201,9 +201,9 @@ def ensure_layout_js(content: str, prefix: str) -> str:
     script = f'  <script src="{prefix}js/layout.js"></script>\n'
     if 'js/layout.js' in content:
         return content
-    marker = f'<script src="{prefix}js/main.js"></script>'
-    if marker in content:
-        return content.replace(marker, script + marker)
+    for marker in (f'<script src="{prefix}js/main.js?v=2"></script>', f'<script src="{prefix}js/main.js"></script>'):
+        if marker in content:
+            return content.replace(marker, script + marker)
     return content
 
 

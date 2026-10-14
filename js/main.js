@@ -1,5 +1,15 @@
 jQuery(document).ready(function($) {
 
+  // Плагины шаблона подключены не на всех страницах. Без заглушки вызов
+  // отсутствующего плагина (например, owlCarousel на странице калькулятора)
+  // бросает ошибку и обрывает весь остальной код этого скрипта.
+  ['jetmenu', 'tooltip', 'popover', 'prettyPhoto', 'hoverdir', 'owlCarousel',
+   'easyPieChart', 'isotope', 'imagesLoaded'].forEach(function (name) {
+    if (typeof $.fn[name] !== 'function') {
+      $.fn[name] = function () { return this; };
+    }
+  });
+
   // Accordion Toggle
   var iconOpen = 'icon-minus', iconClose = 'icon-plus';
 

@@ -331,6 +331,25 @@ describe('client feedback: receipt time, tank room, manual consumption', () => {
   });
 
   it('fits a nearly full tank when the receipt is at the end of the shift', () => {
+    // 40 л в баке на 50 л + чек 35 л в 18:30: к чеку нужно сжечь ≥25 л (~210 км) — в пределах 300 км.
+    const result = calculate(
+      baseInput({
+        объёмБака: 50,
+        остатокНаНачало: 40,
+        среднийРасход: 12,
+        остатокНаКонец: 10,
+        водители: [{ фио: 'Иванов И.И.', дни: new Set(['2025-06-01']) }],
+        заправки: [{ дата: '2025-06-01', время: '18:30', объём: 35 }],
+      }),
+    );
+    expect(result.предупреждения.some((w) => w.includes('не помещается'))).toBe(false);
+    expect(result.листы[0].заправки?.[0].объём).toBe(35);
+    expect(result.листы[0].расходФакт).toBeGreaterThan(30);
+    expect(result.листы[0].пробег).toBeLessThanOrEqual(MAX_DAILY_KM.легковой);
+  });
+
+  it('never exceeds the daily mileage cap to make a receipt fit — warns instead', () => {
+    // 48 л в баке на 50 л + чек 40 л: влезет, только если проехать ~317 км — больше лимита 300.
     const result = calculate(
       baseInput({
         объёмБака: 50,
@@ -341,9 +360,8 @@ describe('client feedback: receipt time, tank room, manual consumption', () => {
         заправки: [{ дата: '2025-06-01', время: '18:30', объём: 40 }],
       }),
     );
-    expect(result.предупреждения.some((w) => w.includes('не помещается'))).toBe(false);
-    expect(result.листы[0].заправки?.[0].объём).toBe(40);
-    expect(result.листы[0].расходФакт).toBeGreaterThan(30);
+    expect(result.листы[0].пробег).toBeLessThanOrEqual(MAX_DAILY_KM.легковой);
+    expect(result.предупреждения.some((w) => w.includes('не помещается'))).toBe(true);
   });
 
   it('fits an end-of-shift refuel because fuel was burned during the day', () => {

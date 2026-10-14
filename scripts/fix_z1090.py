@@ -42,7 +42,7 @@ if idx != -1:
   <script src="../lib/jigowatt/jigowatt.js"></script>
   <script src="../lib/easypiechart/easypiechart.min.js"></script>
   <script src="../js/layout.js"></script>
-  <script src="../js/main.js"></script>
+  <script src="../js/main.js?v=2"></script>
 
 </body>
 </html>

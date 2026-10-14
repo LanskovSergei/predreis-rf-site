@@ -619,9 +619,14 @@ export function calculate(input: ВходныеДанные): Результат
 
     // Расход идёт по времени чека: к поздней заправке бак уже частично пуст,
     // поэтому литры с чека не проверяем так, будто их залили в полный бак на выезде.
+    // Потолок расхода смены — дневной лимит пробега (300/250 км × дни смены).
+    // «Добор» расхода перед поздней заправкой тоже не может его превысить:
+    // если чек всё равно не влезает в бак — честное предупреждение ниже,
+    // а не нереальный пробег (раньше выходило до 2000+ км за смену).
     const intended = Math.min(target, maxFuelByKm);
     const adds: number[] = [];
     let level = openingFuel;
+    let burnedSoFar = 0;
     for (let k = 0; k < recs.length; k++) {
       const f = Math.min(1, Math.max(0, fractions[k]));
       const prevF = k === 0 ? 0 : Math.min(1, Math.max(0, fractions[k - 1]));
@@ -629,7 +634,9 @@ export function calculate(input: ВходныеДанные): Результат
       const share = intended * Math.max(0, f - prevF);
       const need = Math.max(0, level + vol - tankCap);
       const maxBefore = Math.max(0, level - (f >= 0.15 && need > 0 ? MIN_FUEL_BEFORE_REFUEL : MIN_CLOSING_FUEL));
-      const burnBefore = Math.min(maxBefore, f >= 0.15 ? Math.max(share, need) : share);
+      const capLeft = Math.max(0, maxFuelByKm - burnedSoFar);
+      const burnBefore = Math.min(maxBefore, capLeft, f >= 0.15 ? Math.max(share, need) : share);
+      burnedSoFar += burnBefore;
       level -= burnBefore;
       const add = Math.min(vol, Math.max(0, tankCap - level));
       adds.push(add);
@@ -645,6 +652,15 @@ export function calculate(input: ВходныеДанные): Результат
     if (level > tankCap) level = tankCap;
     const added = adds.reduce((s, n) => s + n, 0);
     let burn = Math.max(0, openingFuel + added - level);
+    burn = Math.min(burn, maxFuelByKm);
+    // Минимум пробега за смену (5,9 км/день): поднимаем, если хватает топлива
+    // с сохранением резерва. Если не хватает — оставляем как есть: обнулять
+    // нельзя, место под заправку уже посчитано с учётом этого расхода.
+    const minKm = MIN_DAILY_KM * Math.max(1, shift.days);
+    if (C > 0 && burn > 0 && (burn * 100) / C < minKm) {
+      const minBurn = Math.min((minKm * C) / 100, maxFuelByKm);
+      if (openingFuel + added - minBurn >= MIN_CLOSING_FUEL) burn = minBurn;
+    }
     burn = Math.floor(burn * 100) / 100;
     level = round(Math.min(tankCap, Math.max(MIN_CLOSING_FUEL, openingFuel + added - burn)), 2);
     let mileage = C > 0 ? Math.floor(((burn * 100) / C) * 10) / 10 : 0;

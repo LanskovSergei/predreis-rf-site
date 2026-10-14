@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { calculate, MIN_CLOSING_FUEL } from './calc';
+import { calculate, MIN_CLOSING_FUEL, MAX_DAILY_KM } from './calc';
 import type { ВходныеДанные, ВидСообщения } from './types';
 
 let seed = 42;
@@ -37,6 +37,8 @@ it('fuel, odometer and time invariants hold on random inputs', () => {
       expect(l.остатокВыдача).toBeGreaterThanOrEqual(0);
       expect(l.остатокЗакрытие).toBeGreaterThanOrEqual(MIN_CLOSING_FUEL - 0.05);
       expect(l.пробег).toBeGreaterThanOrEqual(0);
+      // Дневной лимит пробега (300/250 км × дни смены) — не превышается никогда.
+      expect(l.пробег).toBeLessThanOrEqual(MAX_DAILY_KM[inp.типТС] * Math.max(1, l.пробегПоДням?.length ?? 1) + 0.5);
       expect(l.общееВремя).toBeGreaterThan(0);
       const added = (l.заправки ?? []).reduce((s, z) => s + z.объём, 0);
       expect(Math.abs(l.остатокЗакрытие - (l.остатокВыдача + added - l.расходФакт))).toBeLessThan(0.1);
