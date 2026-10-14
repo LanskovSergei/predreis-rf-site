@@ -196,6 +196,58 @@ export function Form4cPages({ d }: { d: ДанныеБланка }) {
           <span>М.П.</span>
         </div>
       </div>
+
+      <div className="pdf-sheet pdf-sheet--landscape pl-form pl-form--4c" data-orientation="landscape">
+        <div className="pl-form__back-title">Оборотная сторона формы № 4-С</div>
+        <div className="pl-form__section-title">Последовательность выполнения задания</div>
+        <table className="pl-grid">
+          <thead>
+            <tr>
+              <th>пункт погрузки, разгрузки и перецепки прицепов</th>
+              <th>№ ездки</th>
+              <th>прибытие</th>
+              <th>убытие</th>
+              <th>номер прицепа</th>
+              <th>порожний / гружёный</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 8 }, (_, i) => (
+              <tr key={i}>
+                <td>&nbsp;</td>
+                <td>{i + 1}</td>
+                <td />
+                <td />
+                <td />
+                <td />
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="pl-form__section-title">Результаты работы автомобиля и прицепов</div>
+        <table className="pl-grid">
+          <thead>
+            <tr>
+              <th>расход горючего, л</th>
+              <th>время в наряде</th>
+              <th>пробег, км</th>
+              <th>ездки</th>
+              <th>простои</th>
+              <th>зарплата</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>&nbsp;</td>
+              <td />
+              <td />
+              <td />
+              <td />
+              <td />
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }

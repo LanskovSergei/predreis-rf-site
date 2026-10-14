@@ -8,7 +8,7 @@ import { формаПоТипуТС, названиеФормы } from './formPl
 import { PdfFormPages } from './pdfForms';
 import { DatePickerField } from './DatePickerField';
 import { MonthCalendar } from './MonthCalendar';
-import { firstOfMonthISO, jsDayToMonFirst } from './dateCalendar';
+import { firstOfMonthISO, formatRuDate, jsDayToMonFirst } from './dateCalendar';
 
 const МАРКИ_ПОДСКАЗКИ = [
   'ГАЗ', 'КамАЗ', 'УАЗ', 'ВАЗ (Lada)', 'Урал', 'МАЗ', 'ЗИЛ', 'ПАЗ', 'ЛиАЗ',
@@ -22,8 +22,10 @@ function todayISO(offsetDays = 0): string {
   return toISODate(d);
 }
 
-function emptyRefuel(): Заправка {
-  return { дата: todayISO(), время: '08:00', объём: '' };
+function dropRefuelsOutsideWorkDays(водители: ДемоВодитель[], заправки: Заправка[]): Заправка[] {
+  const days = new Set<string>();
+  водители.forEach((v) => v.дни.forEach((d) => days.add(d)));
+  return заправки.filter((r) => days.has(r.дата));
 }
 
 interface ДемоВодитель {
@@ -137,8 +139,8 @@ function buildInput(state: DemoState): ВходныеДанные {
   };
 }
 
-/** Список полей по каждому из 6 шагов — для валидации и подписи ошибок. */
-const STEP_TITLES = ['Авто', 'Водители', 'Топливо', 'Заправки', 'Расход', 'Остатки'];
+/** Три шага: авто+топливо, водители+заправки, расход+остатки. */
+const STEP_TITLES = ['Авто', 'Водители и заправки', 'Расход и остатки ГСМ'];
 
 function validateStep(state: DemoState, step: number): string[] {
   const errs: string[] = [];
@@ -156,13 +158,16 @@ function validateStep(state: DemoState, step: number): string[] {
       if (!v.фио.trim()) errs.push(`Укажите ФИО водителя №${i + 1}.`);
       if (v.дни.size === 0) errs.push(`Отметьте в календаре хотя бы один рабочий день водителя №${i + 1}.`);
     });
-  }
-  if (step === 4) {
-    if (state.заправки.filter((r) => r.дата && r.объём !== '').length === 0) {
-      errs.push('Добавьте хотя бы одну заправку с чека.');
+    if (state.заправки.length === 0) {
+      errs.push('Отметьте в календаре хотя бы один день заправки.');
     }
+    state.заправки.forEach((r) => {
+      const when = formatRuDate(r.дата);
+      if (!r.время) errs.push(`Укажите время заправки ${when}.`);
+      if (r.объём === '' || Number(r.объём) <= 0) errs.push(`Укажите объём заправки ${when}.`);
+    });
   }
-  if (step === 5) {
+  if (step === 3) {
     if (
       state.одометрНаКонец !== '' &&
       state.одометрНаНачало !== '' &&
@@ -173,8 +178,6 @@ function validateStep(state: DemoState, step: number): string[] {
     if (state.спецтехника && !(Number(state.среднийРасход) > 0)) {
       errs.push('Для спецтехники коэффициенты не применяются — укажите средний расход вручную.');
     }
-  }
-  if (step === 6) {
     if (state.остатокНаНачало === '' || Number(state.остатокНаНачало) < 0) {
       errs.push('Укажите остаток топлива в баке на начало периода.');
     }
@@ -187,7 +190,7 @@ function validateStep(state: DemoState, step: number): string[] {
 
 function validateAll(state: DemoState): string[] {
   const errs: string[] = [];
-  for (let s = 1; s <= 6; s++) errs.push(...validateStep(state, s));
+  for (let s = 1; s <= 3; s++) errs.push(...validateStep(state, s));
   return errs;
 }
 
@@ -239,16 +242,16 @@ export function DemoApp() {
     }));
 
   const toggleDriverDay = (driverIdx: number, iso: string) =>
-    setState((s) => ({
-      ...s,
-      водители: s.водители.map((v, i) => {
+    setState((s) => {
+      const водители = s.водители.map((v, i) => {
         if (i !== driverIdx) return v;
         const next = new Set(v.дни);
         if (next.has(iso)) next.delete(iso);
         else next.add(iso);
         return { ...v, дни: next };
-      }),
-    }));
+      });
+      return { ...s, водители, заправки: dropRefuelsOutsideWorkDays(водители, s.заправки) };
+    });
 
   const setDriverViewMonth = (driverIdx: number, iso: string) =>
     setState((s) => ({
@@ -257,21 +260,21 @@ export function DemoApp() {
     }));
 
   const toggleAllWorkingDays = (driverIdx: number, checked: boolean) =>
-    setState((s) => ({
-      ...s,
-      водители: s.водители.map((v, i) =>
+    setState((s) => {
+      const водители = s.водители.map((v, i) =>
         i === driverIdx
           ? { ...v, дни: checked ? weekdaysInPeriod(s.периодС, s.периодПо) : new Set<string>() }
           : v,
-      ),
-    }));
+      );
+      return { ...s, водители, заправки: dropRefuelsOutsideWorkDays(водители, s.заправки) };
+    });
 
   const setDriverCount = (count: number) =>
     setState((s) => {
       const next = [...s.водители];
       while (next.length < count) next.push(emptyDriver(s.периодС));
       while (next.length > count) next.pop();
-      return { ...s, водители: next };
+      return { ...s, водители: next, заправки: dropRefuelsOutsideWorkDays(next, s.заправки) };
     });
 
   const addDriver = () =>
@@ -280,7 +283,10 @@ export function DemoApp() {
     );
 
   const removeDriver = (driverIdx: number) =>
-    setState((s) => ({ ...s, водители: s.водители.filter((_, i) => i !== driverIdx) }));
+    setState((s) => {
+      const водители = s.водители.filter((_, i) => i !== driverIdx);
+      return { ...s, водители, заправки: dropRefuelsOutsideWorkDays(водители, s.заправки) };
+    });
 
   const updRefuel = (idx: number, patch: Partial<Заправка>) =>
     setState((s) => ({
@@ -288,26 +294,18 @@ export function DemoApp() {
       заправки: s.заправки.map((r, i) => (i === idx ? { ...r, ...patch } : r)),
     }));
 
-  const addRefuel = () => setState((s) => ({ ...s, заправки: [...s.заправки, emptyRefuel()] }));
   const removeRefuel = (idx: number) =>
     setState((s) => ({ ...s, заправки: s.заправки.filter((_, i) => i !== idx) }));
 
-  const fillRefuelsFromCalendar = () =>
+  const toggleRefuelDay = (driverIdx: number, iso: string) =>
     setState((s) => {
-      const periodDays = datesInPeriod(s.периодС, s.периодПо);
-      const targetDates = new Set<string>();
-      s.водители.forEach((v) =>
-        v.дни.forEach((d) => {
-          if (periodDays.has(d)) targetDates.add(d);
-        }),
-      );
-      const existingByDate = new Map(
-        s.заправки.filter((r) => periodDays.has(r.дата)).map((r) => [r.дата, r] as const),
-      );
-      const заправки: Заправка[] = [...targetDates].sort().map((дата) => {
-        const prev = existingByDate.get(дата);
-        return prev ?? { ...emptyRefuel(), дата };
-      });
+      const driver = s.водители[driverIdx];
+      if (!driver || !driver.дни.has(iso)) return s;
+      if (s.заправки.some((r) => r.дата === iso)) {
+        return { ...s, заправки: s.заправки.filter((r) => r.дата !== iso) };
+      }
+      const заправки = [...s.заправки, { дата: iso, время: '', объём: '' as const }];
+      заправки.sort((a, b) => a.дата.localeCompare(b.дата));
       return { ...s, заправки };
     });
 
@@ -323,7 +321,7 @@ export function DemoApp() {
     setErrors(errs);
     if (errs.length) return;
     setErrors([]);
-    setStep((s) => Math.min(6, s + 1));
+    setStep((s) => Math.min(3, s + 1));
     window.scrollTo({ top: document.querySelector('.ticket')?.getBoundingClientRect().top ?? 0, behavior: 'smooth' });
   };
 
@@ -427,7 +425,7 @@ export function DemoApp() {
           })}
         </div>
         <p className="wizard-step-label">
-          Шаг {step} из 6 — {STEP_TITLES[step - 1]}
+          Шаг {step} из 3 — {STEP_TITLES[step - 1]}
         </p>
 
         <div className="perforation" aria-hidden="true" />
@@ -488,6 +486,31 @@ export function DemoApp() {
                 <input type="checkbox" checked={state.спецтехника} onChange={(e) => upd('спецтехника', e.target.checked)} />
                 Спецтехника <span className="hint">(коэффициенты не применяются, потребуется указать средний расход вручную)</span>
               </label>
+            </div>
+            <h2>
+              <span className="section-label">Топливо</span>
+            </h2>
+            <div className="grid">
+              <div className="field">
+                <label>Вид топлива</label>
+                <select value={state.видТоплива} onChange={(e) => upd('видТоплива', e.target.value as ВидТоплива)}>
+                  <option value="ДТ">ДТ</option>
+                  <option value="Аи-92">Аи-92</option>
+                  <option value="Аи-95">Аи-95</option>
+                  <option value="Аи-100">Аи-100</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>
+                  Объём бака ТС, л <span className="hint">(необязательно)</span>
+                </label>
+                <DecimalInput
+                  min={0}
+                  value={state.объёмБака}
+                  onChange={(v) => upd('объёмБака', v)}
+                  placeholder="Напр., 70"
+                />
+              </div>
             </div>
           </section>
         )}
@@ -550,16 +573,35 @@ export function DemoApp() {
                     </button>
                   )}
                 </div>
-                <p className="calendar-hint">Укажите рабочие дни водителя</p>
-                <MonthCalendar
-                  viewMonth={driver.viewMonth}
-                  selected={driver.дни}
-                  highlightDays={datesInPeriod(state.периодС, state.периодПо)}
-                  min={state.периодС || undefined}
-                  max={state.периодПо || undefined}
-                  onToggle={(iso) => toggleDriverDay(driverIdx, iso)}
-                  onViewMonthChange={(iso) => setDriverViewMonth(driverIdx, iso)}
-                />
+                <div className="driver-calendars">
+                  <div>
+                    <p className="calendar-hint">Укажите рабочие дни водителя</p>
+                    <MonthCalendar
+                      viewMonth={driver.viewMonth}
+                      selected={driver.дни}
+                      highlightDays={datesInPeriod(state.периодС, state.периодПо)}
+                      min={state.периодС || undefined}
+                      max={state.периодПо || undefined}
+                      onToggle={(iso) => toggleDriverDay(driverIdx, iso)}
+                      onViewMonthChange={(iso) => setDriverViewMonth(driverIdx, iso)}
+                    />
+                  </div>
+                  <div>
+                    <p className="calendar-hint">Укажите дни заправки этого водителя</p>
+                    <MonthCalendar
+                      variant="refuel"
+                      viewMonth={driver.viewMonth}
+                      selected={new Set(state.заправки.filter((r) => driver.дни.has(r.дата)).map((r) => r.дата))}
+                      highlightDays={datesInPeriod(state.периодС, state.периодПо)}
+                      markedDays={driver.дни}
+                      enabledDays={driver.дни}
+                      min={state.периодС || undefined}
+                      max={state.периодПо || undefined}
+                      onToggle={(iso) => toggleRefuelDay(driverIdx, iso)}
+                      onViewMonthChange={(iso) => setDriverViewMonth(driverIdx, iso)}
+                    />
+                  </div>
+                </div>
                 <label className="checkbox-row">
                   <input
                     type="checkbox"
@@ -580,51 +622,13 @@ export function DemoApp() {
                 + Добавить водителя
               </button>
             )}
-          </section>
-        )}
 
-        {step === 3 && (
-          <section className="ticket-section">
-            <h2>
-              <span className="section-label">Топливо</span>
-            </h2>
-            <div className="grid">
-              <div className="field">
-                <label>Вид топлива</label>
-                <select value={state.видТоплива} onChange={(e) => upd('видТоплива', e.target.value as ВидТоплива)}>
-                  <option value="ДТ">ДТ</option>
-                  <option value="Аи-92">Аи-92</option>
-                  <option value="Аи-95">Аи-95</option>
-                  <option value="Аи-100">Аи-100</option>
-                </select>
-              </div>
-              <div className="field">
-                <label>
-                  Объём бака ТС, л <span className="hint">(необязательно)</span>
-                </label>
-                <DecimalInput
-                  min={0}
-                  value={state.объёмБака}
-                  onChange={(v) => upd('объёмБака', v)}
-                  placeholder="Напр., 70"
-                />
-              </div>
-            </div>
-          </section>
-        )}
-
-        {step === 4 && (
-          <section className="ticket-section">
             <h2>
               <span className="section-label">Заправки</span>
             </h2>
-            <p className="step-hint">Чеки с автозаправок — введите данные с каждого чека отдельной строкой.</p>
-            <button type="button" className="link-btn" onClick={fillRefuelsFromCalendar}>
-              + Подставить строки по рабочим дням водителей
-            </button>
             <p className="step-hint">
-              Появятся черновые строки на каждый отмеченный рабочий день — впишите литры по чеку или уберите
-              лишние.
+              Чеки с автозаправок — введите данные с каждого чека отдельной строкой. Дата появляется, когда
+              день отмечен в календаре заправок.
             </p>
             <div className="refuels">
               <div className="refuel-row refuel-row-head">
@@ -634,16 +638,14 @@ export function DemoApp() {
                 <span />
               </div>
               {state.заправки.map((r, idx) => (
-                <div className="refuel-row" key={idx}>
-                  <DatePickerField
-                    compact
-                    value={r.дата}
-                    min={state.периодС || undefined}
-                    max={state.периодПо || undefined}
-                    aria-label="Дата заправки"
-                    onChange={(iso) => updRefuel(idx, { дата: iso })}
+                <div className="refuel-row" key={r.дата}>
+                  <span className="refuel-date mono">{formatRuDate(r.дата)}</span>
+                  <input
+                    type="time"
+                    value={r.время}
+                    aria-label={`Время заправки ${formatRuDate(r.дата)}`}
+                    onChange={(e) => updRefuel(idx, { время: e.target.value })}
                   />
-                  <input type="time" value={r.время} onChange={(e) => updRefuel(idx, { время: e.target.value })} />
                   <DecimalInput
                     min={0}
                     value={r.объём}
@@ -656,14 +658,21 @@ export function DemoApp() {
                 </div>
               ))}
             </div>
-            <button type="button" className="link-btn" onClick={addRefuel}>
-              + Добавить ещё чек
-            </button>
           </section>
         )}
 
-        {step === 5 && (
+        {step === 3 && (
           <section className="ticket-section">
+            <div className="grid grid-dates">
+              <div className="field field--wide">
+                <label>Период для расчёта: с</label>
+                <DatePickerField value={state.периодС} readOnly aria-label="Дата начала периода" />
+              </div>
+              <div className="field field--wide">
+                <label>по</label>
+                <DatePickerField value={state.периодПо} readOnly aria-label="Дата окончания периода" />
+              </div>
+            </div>
             <h2>
               <span className="section-label">Расход</span>
             </h2>
@@ -731,24 +740,9 @@ export function DemoApp() {
                   />
               </div>
             )}
-          </section>
-        )}
-
-        {step === 6 && (
-          <section className="ticket-section">
             <h2>
               <span className="section-label">Остатки ГСМ</span>
             </h2>
-            <div className="grid grid-dates">
-              <div className="field field--wide">
-                <label>Период для расчёта: с</label>
-                <DatePickerField value={state.периодС} readOnly aria-label="Дата начала периода" />
-              </div>
-              <div className="field field--wide">
-                <label>по</label>
-                <DatePickerField value={state.периодПо} readOnly aria-label="Дата окончания периода" />
-              </div>
-            </div>
             <div className="grid">
               <div className="field">
                 <label>Остаток топлива в баке на начало периода, л</label>
@@ -778,12 +772,12 @@ export function DemoApp() {
               ← Назад
             </button>
           )}
-          {step < 6 && (
+          {step < 3 && (
             <button type="button" className="btn-calc" onClick={goNext}>
               Вперёд →
             </button>
           )}
-          {step === 6 && (
+          {step === 3 && (
             <button type="button" className="btn-calc" onClick={onCalc} disabled={loading}>
               {loading ? 'Считаю…' : 'Посчитать'}
             </button>
@@ -830,43 +824,43 @@ export function DemoApp() {
                     </span>
                   </div>
                   <div className="stub-row">
-                    <span>Одометр</span>
+                    <span>Время в наряде</span>
+                    <span className="mono">{л.общееВремя} ч</span>
+                  </div>
+                  <div className="stub-row">
+                    <span>Заправки</span>
+                    <span className="mono">
+                      {л.заправки && л.заправки.length > 0
+                        ? л.заправки.map((z) => `${z.время} — ${z.объём} л`).join('; ')
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="stub-row highlight">
+                    <span>Средний расход</span>
+                    <span className="mono">
+                      {result.расход ? `${result.расход.effective.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} л/100 км` : '—'}
+                    </span>
+                  </div>
+                  <div className="stub-row stub-row--group">
+                    <span>Одометр (выезд / возвращение)</span>
                     <span className="mono">
                       {л.одометрВыдача} → {л.одометрЗакрытие} км
                     </span>
                   </div>
                   <div className="stub-row highlight">
-                    <span>Пробег</span>
+                    <span>Пробег за день</span>
                     <span className="mono">{л.пробег} км</span>
                   </div>
-                  {л.пробегПоДням.length > 1 && (
-                    <div className="stub-row stub-row--daily">
-                      <span>По дням</span>
-                      <span className="mono">{л.пробегПоДням.join(' · ')} км</span>
-                    </div>
-                  )}
-                  <div className="stub-row">
-                    <span>ГСМ в баке</span>
+                  <div className="stub-row stub-row--group">
+                    <span>ГСМ в баке (выезд / возвращение)</span>
                     <span className="mono">
                       {л.остатокВыдача} → {л.остатокЗакрытие} л
                     </span>
                   </div>
                   <div className="stub-row highlight">
-                    <span>Расход</span>
+                    <span>Израсходовано ГСМ за день</span>
                     <span className="mono">{л.расходФакт} л</span>
                   </div>
-                  <div className="stub-row">
-                    <span>Время в наряде</span>
-                    <span className="mono">{л.общееВремя} ч</span>
-                  </div>
-                  {л.заправки && л.заправки.length > 0 && (
-                    <div className="stub-row stub-row--refuels">
-                      <span>Заправки</span>
-                      <span className="mono">
-                        {л.заправки.map((z) => `${z.время} — ${z.объём} л`).join('; ')}
-                      </span>
-                    </div>
-                  )}
                   <div className="stub-actions">
                     <button
                       type="button"
@@ -874,7 +868,7 @@ export function DemoApp() {
                       onClick={() => onDownloadSheetPdf(л.номер)}
                       disabled={pdfLoading !== null}
                     >
-                      {pdfLoading === л.номер ? 'Готовлю PDF…' : 'Скачать этот лист'}
+                      {pdfLoading === л.номер ? 'Готовлю PDF…' : 'Скачать заполненный путевой лист'}
                     </button>
                   </div>
                 </div>

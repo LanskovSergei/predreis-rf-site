@@ -618,9 +618,18 @@ button:focus-visible {
   font-weight: 700;
 }
 
-.mini-calendar__cell.in-period:not(.active) {
+.mini-calendar__cell.in-period:not(.active):not(.working) {
   background: #eef2ff;
   font-weight: 600;
+}
+
+.mini-calendar__cell.working:not(.active) {
+  background: #c5d4f7;
+  font-weight: 700;
+}
+
+.mini-calendar--refuel .mini-calendar__cell.active {
+  background: #9b2335;
 }
 
 .mini-calendar__cell--empty {
@@ -638,6 +647,27 @@ button:focus-visible {
 .mini-calendar__cell--disabled:hover,
 .mini-calendar__cell:disabled:hover {
   background: transparent;
+}
+
+.mini-calendar__cell.in-period.mini-calendar__cell--disabled,
+.mini-calendar__cell.in-period:disabled {
+  background: #eef2ff;
+  color: #9aa3b5;
+}
+
+.driver-calendars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.driver-calendars .mini-calendar {
+  max-width: none;
+}
+
+.stub-row--group {
+  margin-top: 8px;
 }
 
 .date-picker {
@@ -965,18 +995,22 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .driver-calendars {
+    grid-template-columns: 1fr;
+  }
+
   .refuel-row {
     grid-template-columns: 1fr 1fr auto;
     grid-template-areas: 'date time del' 'vol vol vol';
   }
 
-  .refuel-row input:nth-child(1) {
+  .refuel-row .refuel-date {
     grid-area: date;
   }
-  .refuel-row input:nth-child(2) {
+  .refuel-row input[type='time'] {
     grid-area: time;
   }
-  .refuel-row input:nth-child(3) {
+  .refuel-row input:not([type='time']) {
     grid-area: vol;
   }
   .refuel-row button {

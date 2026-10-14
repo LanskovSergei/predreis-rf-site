@@ -12,6 +12,9 @@ export function MonthCalendar({
   selected,
   onToggle,
   highlightDays,
+  markedDays,
+  enabledDays,
+  variant = 'work',
   min,
   max,
 }: {
@@ -19,7 +22,13 @@ export function MonthCalendar({
   onViewMonthChange: (monthStartISO: string) => void;
   selected: Set<string>;
   onToggle: (iso: string) => void;
+  /** Бледный слой: выбранный период расчёта. */
   highlightDays?: Set<string>;
+  /** Второй слой: рабочие дни (на календаре заправок). */
+  markedDays?: Set<string>;
+  /** Если задан — кликабельны только эти даты (внутри min/max). */
+  enabledDays?: Set<string>;
+  variant?: 'work' | 'refuel';
   min?: string;
   max?: string;
 }) {
@@ -27,7 +36,7 @@ export function MonthCalendar({
   const label = monthLabel(viewMonth);
 
   return (
-    <div className="mini-calendar">
+    <div className={`mini-calendar${variant === 'refuel' ? ' mini-calendar--refuel' : ''}`}>
       <div className="mini-calendar__head">
         <button type="button" className="icon-btn" onClick={() => onViewMonthChange(shiftViewMonth(viewMonth, -1))} aria-label="Предыдущий месяц">
           ‹
@@ -48,11 +57,13 @@ export function MonthCalendar({
             return <span key={`empty-${i}`} className="mini-calendar__cell mini-calendar__cell--empty" />;
           }
           const inRange = isDateInRange(iso, min, max);
+          const allowed = inRange && (!enabledDays || enabledDays.has(iso));
           const classes = [
             'mini-calendar__cell',
             selected.has(iso) ? 'active' : '',
+            markedDays?.has(iso) ? 'working' : '',
             highlightDays?.has(iso) ? 'in-period' : '',
-            !inRange ? 'mini-calendar__cell--disabled' : '',
+            !allowed ? 'mini-calendar__cell--disabled' : '',
           ]
             .filter(Boolean)
             .join(' ');
@@ -61,8 +72,8 @@ export function MonthCalendar({
               type="button"
               key={iso}
               className={classes}
-              disabled={!inRange}
-              onClick={() => inRange && onToggle(iso)}
+              disabled={!allowed}
+              onClick={() => allowed && onToggle(iso)}
             >
               {Number(iso.slice(8, 10))}
             </button>

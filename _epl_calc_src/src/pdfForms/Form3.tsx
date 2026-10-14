@@ -190,23 +190,9 @@ export function Form3Pages({ d }: { d: ДанныеБланка }) {
             </tr>
           </thead>
           <tbody>
-            {d.пробегПоДням.map((km, idx) => (
-              <tr key={idx}>
-                <td>{idx + 1}</td>
-                <td><Val /></td>
-                <td><Val wide>{d.адресСтоянки}</Val></td>
-                <td><Val wide>{d.адресСтоянки}</Val></td>
-                <td>{idx === 0 ? <Val>{d.выпускЧ}</Val> : null}</td>
-                <td>{idx === 0 ? <Val>{d.выпускМин}</Val> : null}</td>
-                <td>{idx === d.пробегПоДням.length - 1 ? <Val>{d.возвратЧ}</Val> : null}</td>
-                <td>{idx === d.пробегПоДням.length - 1 ? <Val>{d.возвратМин}</Val> : null}</td>
-                <td><Val>{km}</Val></td>
-                <td />
-              </tr>
-            ))}
-            {Array.from({ length: Math.max(0, 6 - d.пробегПоДням.length) }, (_, i) => (
+            {Array.from({ length: 14 }, (_, i) => (
               <tr key={`empty-${i}`}>
-                <td>{d.пробегПоДням.length + i + 1}</td>
+                <td>{i + 1}</td>
                 <td />
                 <td />
                 <td />
@@ -224,11 +210,11 @@ export function Form3Pages({ d }: { d: ДанныеБланка }) {
           <tbody>
             <tr>
               <td className="pl-label">Результат работы автомобиля за смену: всего в наряде, ч. мин.</td>
-              <td><Val>{d.времяНарядЧ}</Val> : <Val>{d.времяНарядМин}</Val></td>
+              <td />
             </tr>
             <tr>
               <td className="pl-label">пройдено, км</td>
-              <td><Val>{d.пробег}</Val></td>
+              <td />
             </tr>
           </tbody>
         </table>

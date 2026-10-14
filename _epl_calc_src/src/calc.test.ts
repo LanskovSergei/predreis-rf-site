@@ -330,6 +330,22 @@ describe('client feedback: receipt time, tank room, manual consumption', () => {
     expect(minutes('07:30') - minutes(timeOf(sheet.выпуск))).toBeGreaterThanOrEqual(15);
   });
 
+  it('fits a nearly full tank when the receipt is at the end of the shift', () => {
+    const result = calculate(
+      baseInput({
+        объёмБака: 50,
+        остатокНаНачало: 48,
+        среднийРасход: 12,
+        остатокНаКонец: 10,
+        водители: [{ фио: 'Иванов И.И.', дни: new Set(['2025-06-01']) }],
+        заправки: [{ дата: '2025-06-01', время: '18:30', объём: 40 }],
+      }),
+    );
+    expect(result.предупреждения.some((w) => w.includes('не помещается'))).toBe(false);
+    expect(result.листы[0].заправки?.[0].объём).toBe(40);
+    expect(result.листы[0].расходФакт).toBeGreaterThan(30);
+  });
+
   it('fits an end-of-shift refuel because fuel was burned during the day', () => {
     const result = calculate(
       baseInput({

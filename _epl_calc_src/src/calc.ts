@@ -57,59 +57,6 @@ export function clampFuelInTank(liters: number, capacity: number): number {
   return round(Math.min(capacity, Math.max(MIN_CLOSING_FUEL, liters)), 2);
 }
 
-function clampShiftMileage(km: number, maxDailyKm: number, days: number): number {
-  const maxTotal = maxDailyKm * Math.max(1, days);
-  const minTotal = MIN_DAILY_KM * Math.max(1, days);
-  if (km <= 0) return 0;
-  return round(Math.min(maxTotal, Math.max(minTotal, km)), 1);
-}
-
-/** Максимальный расход (л) при сохранении остатка ≥ MIN_CLOSING_FUEL. */
-function maxBurnKeepingReserve(fuel: number): number {
-  return Math.max(0, round(fuel - MIN_CLOSING_FUEL, 2));
-}
-
-/** Пробег и расход с учётом лимитов км и доступного топлива. */
-function mileageAndBurnFromFuel(
-  desiredKm: number,
-  fuel: number,
-  C: number,
-  maxDailyKm: number,
-  days: number,
-): { probeg: number; burn: number } {
-  let probeg = clampShiftMileage(desiredKm, maxDailyKm, days);
-  let burn = round((probeg * C) / 100, 2);
-  const maxBurn = maxBurnKeepingReserve(fuel);
-
-  if (burn > maxBurn) {
-    burn = maxBurn;
-    probeg = C > 0 ? round((burn * 100) / C, 1) : 0;
-  }
-
-  if (probeg > 0 && probeg < MIN_DAILY_KM * Math.max(1, days)) {
-    const minKm = MIN_DAILY_KM * Math.max(1, days);
-    const minBurn = round((minKm * C) / 100, 2);
-    if (minBurn <= maxBurn) {
-      probeg = round(minKm, 1);
-      burn = minBurn;
-    } else {
-      probeg = 0;
-      burn = 0;
-    }
-  }
-
-  if (probeg > 0) {
-    probeg = clampShiftMileage(probeg, maxDailyKm, days);
-    burn = round((probeg * C) / 100, 2);
-    if (burn > maxBurn) {
-      burn = maxBurn;
-      probeg = C > 0 ? round((burn * 100) / C, 1) : 0;
-    }
-  }
-
-  return { probeg, burn };
-}
-
 /** Базовый расход по умолчанию, если пользователь не задал средний расход. */
 const DEFAULT_BASE_CONSUMPTION: Record<ВидТоплива, number> = {
   ДТ: 9,
@@ -670,56 +617,37 @@ export function calculate(input: ВходныеДанные): Результат
     const shiftMaxDailyKm = maxDailyKm * capFactors[i];
     const maxFuelByKm = (shiftMaxDailyKm * shift.days * C) / 100;
 
-    // --- Расход идёт по ходу смены: место в баке считаем на момент заправки ---
-    const simulate = (burn: number) => {
-      const adds: number[] = [];
-      let addedSoFar = 0;
-      let allowed = Number.POSITIVE_INFINITY; // макс. расход, при котором бак не опустеет до заправки
-      let shortfallBurn = 0; // доп. расход до заправки, чтобы она поместилась
-      for (let k = 0; k < recs.length; k++) {
-        const f = fractions[k];
-        if (f > 0) allowed = Math.min(allowed, (openingFuel + addedSoFar - MIN_FUEL_BEFORE_REFUEL) / f);
-        const levelAtRefuel = openingFuel + addedSoFar - burn * f;
-        const room = Math.max(0, tankCap - levelAtRefuel);
-        const add = Math.min(recs[k].remaining, room);
-        if (add < recs[k].remaining - 0.01 && f > 0) {
-          shortfallBurn = Math.max(shortfallBurn, (recs[k].remaining - add) / f);
-        }
-        adds.push(add);
-        addedSoFar += add;
-      }
-      allowed = Math.min(allowed, openingFuel + addedSoFar - MIN_CLOSING_FUEL);
-      return { adds, added: addedSoFar, allowed: Math.max(0, allowed), shortfallBurn };
-    };
-
-    let burn = Math.min(target, maxFuelByKm);
-    for (let iter = 0; iter < 4; iter++) {
-      const sim = simulate(burn);
-      let next = Math.min(burn, sim.allowed);
-      // Заправка не влезает в бак → значит, до неё машина успела откатать больше.
-      if (sim.shortfallBurn > 0) next = Math.min(maxFuelByKm, sim.allowed, burn + sim.shortfallBurn);
-      if (Math.abs(next - burn) < 0.01) {
-        burn = next;
-        break;
-      }
-      burn = next;
+    // Расход идёт по времени чека: к поздней заправке бак уже частично пуст,
+    // поэтому литры с чека не проверяем так, будто их залили в полный бак на выезде.
+    const intended = Math.min(target, maxFuelByKm);
+    const adds: number[] = [];
+    let level = openingFuel;
+    for (let k = 0; k < recs.length; k++) {
+      const f = Math.min(1, Math.max(0, fractions[k]));
+      const prevF = k === 0 ? 0 : Math.min(1, Math.max(0, fractions[k - 1]));
+      const vol = recs[k].remaining;
+      const share = intended * Math.max(0, f - prevF);
+      const need = Math.max(0, level + vol - tankCap);
+      const maxBefore = Math.max(0, level - (f >= 0.15 && need > 0 ? MIN_FUEL_BEFORE_REFUEL : MIN_CLOSING_FUEL));
+      const burnBefore = Math.min(maxBefore, f >= 0.15 ? Math.max(share, need) : share);
+      level -= burnBefore;
+      const add = Math.min(vol, Math.max(0, tankCap - level));
+      adds.push(add);
+      level += add;
     }
-    burn = Math.max(0, burn);
-
-    let mileage = C > 0 ? (burn * 100) / C : 0;
-    const available = openingFuel + simulate(burn).added;
-    ({ probeg: mileage, burn } = mileageAndBurnFromFuel(mileage, available, C, shiftMaxDailyKm, shift.days));
-
-    // Сверка резерва на закрытии. Меньший расход = меньше места под заправку,
-    // поэтому сводим до сходимости, а пробег пересчитываем от итогового расхода.
-    let { adds, added } = simulate(burn);
-    for (let iter = 0; iter < 6 && openingFuel + added - burn < MIN_CLOSING_FUEL - 0.005; iter++) {
-      burn = Math.max(0, openingFuel + added - MIN_CLOSING_FUEL);
-      ({ adds, added } = simulate(burn));
-    }
-    if (openingFuel + added - burn < MIN_CLOSING_FUEL - 0.005) burn = Math.max(0, openingFuel + added - MIN_CLOSING_FUEL);
+    const burnedBeforeTail = openingFuel + adds.reduce((s, n) => s + n, 0) - level;
+    const burnAfter = Math.min(
+      Math.max(0, intended - burnedBeforeTail),
+      Math.max(0, level - MIN_CLOSING_FUEL),
+    );
+    level -= burnAfter;
+    if (level < MIN_CLOSING_FUEL) level = MIN_CLOSING_FUEL;
+    if (level > tankCap) level = tankCap;
+    const added = adds.reduce((s, n) => s + n, 0);
+    let burn = Math.max(0, openingFuel + added - level);
     burn = Math.floor(burn * 100) / 100;
-    mileage = C > 0 ? Math.floor(((burn * 100) / C) * 10) / 10 : 0;
+    level = round(Math.min(tankCap, Math.max(MIN_CLOSING_FUEL, openingFuel + added - burn)), 2);
+    let mileage = C > 0 ? Math.floor(((burn * 100) / C) * 10) / 10 : 0;
 
     const заправкиНаЛисте: ЗаправкаНаЛисте[] = [];
     recs.forEach((r, k) => {
