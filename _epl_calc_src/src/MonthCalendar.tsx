@@ -38,12 +38,12 @@ export function MonthCalendar({
   return (
     <div className={`mini-calendar${variant === 'refuel' ? ' mini-calendar--refuel' : ''}`}>
       <div className="mini-calendar__head">
-        <button type="button" className="icon-btn" onClick={() => onViewMonthChange(shiftViewMonth(viewMonth, -1))} aria-label="Предыдущий месяц">
-          ‹
+        <button type="button" className="icon-btn mini-calendar__nav" onClick={() => onViewMonthChange(shiftViewMonth(viewMonth, -1))} aria-label="Предыдущий месяц">
+          <span className="mini-calendar__chevron mini-calendar__chevron--prev" aria-hidden="true" />
         </button>
         <span className="mini-calendar__label">{label}</span>
-        <button type="button" className="icon-btn" onClick={() => onViewMonthChange(shiftViewMonth(viewMonth, 1))} aria-label="Следующий месяц">
-          ›
+        <button type="button" className="icon-btn mini-calendar__nav" onClick={() => onViewMonthChange(shiftViewMonth(viewMonth, 1))} aria-label="Следующий месяц">
+          <span className="mini-calendar__chevron mini-calendar__chevron--next" aria-hidden="true" />
         </button>
       </div>
       <div className="mini-calendar__weekdays">

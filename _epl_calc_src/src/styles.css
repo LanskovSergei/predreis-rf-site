@@ -559,7 +559,53 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+/* Стили button с сайта (отступ снизу, заливка при фокусе) не должны сдвигать стрелки. */
+.mini-calendar__head .mini-calendar__nav,
+.mini-calendar__head .mini-calendar__nav:hover,
+.mini-calendar__head .mini-calendar__nav:focus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  background-color: transparent;
+  color: var(--gsm-ink);
+  box-shadow: none;
+  line-height: 1;
+}
+
+.mini-calendar__head .mini-calendar__nav:hover,
+.mini-calendar__head .mini-calendar__nav:focus-visible {
+  background-color: #eef1f6;
+  color: var(--gsm-ink);
+}
+
+.mini-calendar__chevron {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+}
+
+.mini-calendar__chevron--prev {
+  transform: rotate(-135deg);
+  margin-left: 2px;
+}
+
+.mini-calendar__chevron--next {
+  transform: rotate(45deg);
+  margin-right: 2px;
 }
 
 .mini-calendar__label {

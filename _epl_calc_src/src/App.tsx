@@ -16,6 +16,14 @@ const МАРКИ_ПОДСКАЗКИ = [
   'Hyundai', 'Isuzu', 'Ford', 'ГАЗель NEXT',
 ];
 
+/** Десятичная запятая без группировки тысяч: 10.5 → «10,5», 50 → «50». */
+function formatRuNumber(n: number, maxDigits = 2): string {
+  if (!Number.isFinite(n)) return '';
+  const factor = 10 ** maxDigits;
+  const rounded = Math.round(n * factor) / factor;
+  return rounded.toFixed(maxDigits).replace(/\.?0+$/, '').replace('.', ',');
+}
+
 function todayISO(offsetDays = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
@@ -825,41 +833,41 @@ export function DemoApp() {
                   </div>
                   <div className="stub-row">
                     <span>Время в наряде</span>
-                    <span className="mono">{л.общееВремя} ч</span>
+                    <span className="mono">{formatRuNumber(л.общееВремя, 1)} ч</span>
                   </div>
                   <div className="stub-row">
                     <span>Заправки</span>
                     <span className="mono">
                       {л.заправки && л.заправки.length > 0
-                        ? л.заправки.map((z) => `${z.время} — ${z.объём} л`).join('; ')
+                        ? л.заправки.map((z) => `${z.время} — ${formatRuNumber(z.объём)} л`).join('; ')
                         : '—'}
                     </span>
                   </div>
                   <div className="stub-row highlight">
                     <span>Средний расход</span>
                     <span className="mono">
-                      {result.расход ? `${result.расход.effective.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} л/100 км` : '—'}
+                      {result.расход ? `${formatRuNumber(result.расход.effective, 1)} л/100 км` : '—'}
                     </span>
                   </div>
                   <div className="stub-row stub-row--group">
                     <span>Одометр (выезд / возвращение)</span>
                     <span className="mono">
-                      {л.одометрВыдача} → {л.одометрЗакрытие} км
+                      {formatRuNumber(л.одометрВыдача, 1)} → {formatRuNumber(л.одометрЗакрытие, 1)} км
                     </span>
                   </div>
                   <div className="stub-row highlight">
                     <span>Пробег за день</span>
-                    <span className="mono">{л.пробег} км</span>
+                    <span className="mono">{formatRuNumber(л.пробег, 1)} км</span>
                   </div>
                   <div className="stub-row stub-row--group">
                     <span>ГСМ в баке (выезд / возвращение)</span>
                     <span className="mono">
-                      {л.остатокВыдача} → {л.остатокЗакрытие} л
+                      {formatRuNumber(л.остатокВыдача)} → {formatRuNumber(л.остатокЗакрытие)} л
                     </span>
                   </div>
                   <div className="stub-row highlight">
                     <span>Израсходовано ГСМ за день</span>
-                    <span className="mono">{л.расходФакт} л</span>
+                    <span className="mono">{formatRuNumber(л.расходФакт)} л</span>
                   </div>
                   <div className="stub-actions">
                     <button
