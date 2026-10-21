@@ -91,7 +91,6 @@ def build_header(prefix: str, active: dict) -> str:
         <div class="pr-header__contacts">
           <a href="tel:+79250288755" class="pr-header__phone">+7 925 028-87-55</a>
           <a href="mailto:predreis@predreis.online">predreis@predreis.online</a>
-          <a href="mailto:predreis@predreis.info">predreis@predreis.info</a>
         </div>
       </div>
     </div>
@@ -118,7 +117,6 @@ def build_footer(prefix: str) -> str:
             <a href="tel:+79267996136" class="pr-footer__phone">+7 926 799-61-36</a>
             <p class="pr-footer__label">Email</p>
             <a href="mailto:predreis@predreis.online" class="pr-footer__email">predreis@predreis.online</a>
-            <a href="mailto:predreis@predreis.info" class="pr-footer__email">predreis@predreis.info</a>
             <p class="pr-footer__label">Адрес</p>
             <span class="pr-footer__address">
               <strong class="pr-footer__address-city">Москва,</strong>
