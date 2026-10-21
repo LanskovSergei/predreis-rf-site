@@ -494,8 +494,48 @@ export function buildShifts(input: ВходныеДанные): Смена[] {
 
 // ------- Основной расчёт -------
 
+function formatLiters(n: number): string {
+  return round(n, 2)
+    .toFixed(2)
+    .replace(/0+$/, '')
+    .replace(/\.$/, '')
+    .replace('.', ',');
+}
+
+/**
+ * Остаток на конец больше, чем было в баке плюс заправки: расход вышел бы
+ * отрицательным. Такие данные нельзя тихо обнулять и подменять на бланке.
+ */
+export function impossibleFuelBalanceMessage(
+  остатокНаНачало: number | '',
+  остатокНаКонец: number | '',
+  заправки: ReadonlyArray<{ объём: number | '' }>,
+): string | null {
+  if (остатокНаНачало === '' || остатокНаНачало == null) return null;
+  if (остатокНаКонец === '' || остатокНаКонец == null) return null;
+  const start = num(остатокНаНачало);
+  const end = num(остатокНаКонец);
+  const added = заправки.reduce((sum, row) => sum + num(row.объём), 0);
+  const burned = round(start + added - end, 2);
+  if (burned >= -0.05) return null;
+  return (
+    `Остаток на конец (${formatLiters(end)} л) больше остатка на начало с учётом заправок ` +
+    `(${formatLiters(start + added)} л). Проверьте данные.`
+  );
+}
+
 export function calculate(input: ВходныеДанные): РезультатРасчёта {
   const warnings: string[] = [];
+  const balanceError = impossibleFuelBalanceMessage(
+    input.остатокНаНачало,
+    input.остатокНаКонец,
+    input.заправки,
+  );
+  if (balanceError) {
+    warnings.push(balanceError);
+    return { листы: [], предупреждения: warnings, расход: null };
+  }
+
   const periodStart = parseISODate(input.периодС);
 
   const consumption = computeConsumption(input, periodStart);
@@ -730,7 +770,74 @@ export function calculate(input: ВходныеДанные): Результат
     );
   }
 
+  snapOdometerToPeriodEnd(input, листы, warnings);
+
   return { листы, предупреждения: warnings, расход: consumption };
+}
+
+/**
+ * Пробег каждого листа округляется вниз до 0,1 км, поэтому цепочка спидометра
+ * не доходит до введённого конца периода (1400 превращается в 1399,9).
+ * Последнее показание ставим ровно как ввёл пользователь, пробег листа — разница показаний.
+ */
+function snapOdometerToPeriodEnd(input: ВходныеДанные, листы: ПутевойЛист[], warnings: string[]) {
+  if (листы.length === 0) return;
+  if (input.одометрНаНачало === '' || input.одометрНаНачало == null) return;
+  if (input.одометрНаКонец === '' || input.одометрНаКонец == null) return;
+  const start = round(num(input.одометрНаНачало), 1);
+  const end = round(num(input.одометрНаКонец), 1);
+  const total = round(end - start, 1);
+  if (!(total > 0)) return;
+
+  const current = round(листы.reduce((sum, sheet) => sum + sheet.пробег, 0), 1);
+  const drift = round(total - current, 1);
+
+  const apply = (sheet: ПутевойЛист, open: number, close: number) => {
+    const run = round(close - open, 1);
+    sheet.одометрВыдача = open;
+    sheet.одометрЗакрытие = close;
+    sheet.пробег = run;
+    sheet.пробегПоДням = scaleDailyParts(sheet.пробегПоДням ?? [run], run);
+  };
+
+  // Хвост от округления — доли километра на лист. Кладём его на последний день.
+  if (Math.abs(drift) <= 0.1 * листы.length + 0.05) {
+    if (листы.length === 1) {
+      apply(листы[0], start, end);
+      return;
+    }
+    const last = листы[листы.length - 1];
+    apply(last, round(last.одометрВыдача, 1), end);
+    листы[0].одометрВыдача = start;
+    return;
+  }
+
+  let assigned = 0;
+  let cursor = start;
+  for (let i = 0; i < листы.length; i++) {
+    const last = i === листы.length - 1;
+    const km = last
+      ? round(total - assigned, 1)
+      : Math.floor((current > 0 ? (листы[i].пробег / current) * total : total / листы.length) * 10) / 10;
+    if (!last) assigned = round(assigned + km, 1);
+    const open = round(cursor, 1);
+    const close = last ? end : round(open + km, 1);
+    apply(листы[i], open, close);
+    cursor = close;
+  }
+  warnings.push(`Пробег на бланках приведён к показаниям одометра ${start}–${end} км.`);
+}
+
+function scaleDailyParts(days: number[], total: number): number[] {
+  if (days.length <= 1) return [round(total, 1)];
+  const sum = days.reduce((acc, part) => acc + part, 0);
+  let assigned = 0;
+  return days.map((part, index) => {
+    if (index === days.length - 1) return round(total - assigned, 1);
+    const next = sum > 0 ? Math.floor(((part / sum) * total) * 10) / 10 : 0;
+    assigned = round(assigned + next, 1);
+    return next;
+  });
 }
 
 /**

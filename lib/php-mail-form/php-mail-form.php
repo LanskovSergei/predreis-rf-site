@@ -20,14 +20,14 @@ class PHP_Mail_Form {
   public $ajax = false;
 
   public $error_msg = array(
-    'invalid_to_email' => 'Email to: is empty or invalid!',
-    'invalid_from_name' => 'From Name is empty!',
-    'invalid_from_email' => 'Email from: is empty or invalid!',
-    'invalid_subject' => 'Subject is too short or empty!',
-    'invalid_mailer' => 'Mailer Email is empty or invalid!',
-    'short' => 'is too short or empty!',
-    'send_error' => 'Could not send mail! Please check your PHP mail configurations.',
-    'ajax_error' => 'Sorry, the request should be an Ajax POST',
+    'invalid_to_email' => 'Не указан адрес получателя.',
+    'invalid_from_name' => 'Укажите имя.',
+    'invalid_from_email' => 'Укажите корректный email.',
+    'invalid_subject' => 'Укажите тему сообщения.',
+    'invalid_mailer' => 'Не удалось отправить письмо.',
+    'short' => 'слишком короткое или не заполнено.',
+    'send_error' => 'Не удалось отправить письмо. Попробуйте позже или напишите на predreis@predreis.online.',
+    'ajax_error' => 'Не удалось отправить форму. Обновите страницу и попробуйте снова.',
   );
 
   private $error = false;

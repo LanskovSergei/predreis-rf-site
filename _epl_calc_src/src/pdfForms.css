@@ -124,6 +124,10 @@
   width: 70%;
 }
 
+.pl-form__meta-right {
+  margin-top: 6px;
+}
+
 .pl-form__title {
   text-align: center;
   font-size: 12pt;

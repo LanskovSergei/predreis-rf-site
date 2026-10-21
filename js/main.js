@@ -23,16 +23,19 @@ jQuery(document).ready(function($) {
       $(this).find('.accordion-toggle').not($target).removeClass('active');
   });
 
-  // DM Top
+  // Кнопка «наверх» не лежит поверх текста: видна только пока страницу
+  // листают вниз или вверх, и прячется, когда прокрутка остановилась.
+  var dmtopTimer = null;
   $(window).scroll(function() {
-    if ($(this).scrollTop() > 1) {
-      $('.dmtop').css({
-        bottom: "25px"
-      });
+    if ($(this).scrollTop() > 80) {
+      $('.dmtop').css({ bottom: '25px' });
+      clearTimeout(dmtopTimer);
+      dmtopTimer = setTimeout(function() {
+        $('.dmtop').css({ bottom: '-100px' });
+      }, 1400);
     } else {
-      $('.dmtop').css({
-        bottom: "-100px"
-      });
+      clearTimeout(dmtopTimer);
+      $('.dmtop').css({ bottom: '-100px' });
     }
   });
 

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { ВидСообщения, ВидТоплива, ВходныеДанные, Водитель, Заправка, РезультатРасчёта, ТипТС } from './types';
-import { parseISODate, toISODate } from './calc';
+import { impossibleFuelBalanceMessage, parseISODate, toISODate } from './calc';
 import { calculateSmart } from './api';
 import { DecimalInput } from './DecimalInput';
 import { downloadSheetsPdf } from './pdfExport';
@@ -192,6 +192,12 @@ function validateStep(state: DemoState, step: number): string[] {
     if (state.остатокНаКонец === '' || Number(state.остатокНаКонец) < 0) {
       errs.push('Укажите остаток топлива в баке на конец периода.');
     }
+    const balance = impossibleFuelBalanceMessage(
+      state.остатокНаНачало,
+      state.остатокНаКонец,
+      state.заправки,
+    );
+    if (balance) errs.push(balance);
   }
   return errs;
 }
@@ -343,7 +349,8 @@ export function DemoApp() {
     setErrors(errs);
     if (errs.length) {
       setResult(null);
-      setTimeout(() => document.getElementById('demo-result')?.scrollIntoView({ behavior: 'smooth' }), 0);
+      setFormCollapsed(false);
+      setTimeout(() => document.getElementById('calc-errors')?.scrollIntoView({ behavior: 'smooth' }), 0);
       return;
     }
     setLoading(true);
@@ -439,7 +446,7 @@ export function DemoApp() {
         <div className="perforation" aria-hidden="true" />
 
         {errors.length > 0 && (
-          <div className="alert">
+          <div className="alert" id="calc-errors">
             {errors.map((e, i) => (
               <p key={i}>{e}</p>
             ))}

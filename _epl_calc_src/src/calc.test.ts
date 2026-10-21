@@ -6,6 +6,7 @@ import {
   allocateVariedMileages,
   calculate,
   distributeDailyKm,
+  impossibleFuelBalanceMessage,
 } from './calc';
 import type { ПутевойЛист } from './types';
 import type { ВходныеДанные } from './types';
@@ -415,5 +416,97 @@ describe('client feedback: receipt time, tank room, manual consumption', () => {
       expect(l.остатокЗакрытие).toBeGreaterThanOrEqual(MIN_CLOSING_FUEL - 0.01);
     }
     expect(sheets[sheets.length - 1].остатокЗакрытие).toBeCloseTo(20, 0);
+  });
+
+  it('closes the last sheet exactly on the entered period-end odometer', () => {
+    const result = calculate(
+      baseInput({
+        типТС: 'грузовой',
+        формаПЛ: '4-c',
+        видТоплива: 'Аи-92',
+        среднийРасход: '',
+        периодС: '2026-09-01',
+        периодПо: '2026-09-05',
+        одометрНаНачало: 1000,
+        одометрНаКонец: 1400,
+        остатокНаНачало: 50,
+        остатокНаКонец: 60,
+        объёмБака: 90,
+        водители: [
+          {
+            фио: 'Второй',
+            дни: new Set(['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04']),
+          },
+        ],
+        заправки: [
+          { дата: '2026-09-01', время: '10:00', объём: 30 },
+          { дата: '2026-09-03', время: '11:00', объём: 40 },
+        ],
+      }),
+    );
+    const sheets = result.листы;
+    expect(sheets.length).toBeGreaterThan(0);
+    expect(sheets[0].одометрВыдача).toBeCloseTo(1000, 1);
+    expect(sheets[sheets.length - 1].одометрЗакрытие).toBe(1400);
+    const sum = sheets.reduce((s, l) => s + l.пробег, 0);
+    expect(sum).toBeCloseTo(400, 1);
+    for (let i = 1; i < sheets.length; i++) {
+      expect(sheets[i].одометрВыдача).toBeCloseTo(sheets[i - 1].одометрЗакрытие, 1);
+    }
+    const last = sheets[sheets.length - 1];
+    expect(last.пробег).toBeCloseTo(last.одометрЗакрытие - last.одометрВыдача, 1);
+  });
+
+  it('does not invent a zero-mileage sheet when the end residual exceeds the fuel on hand', () => {
+    const input = baseInput({
+      типТС: 'грузовой',
+      формаПЛ: '4-c',
+      видТоплива: 'Аи-92',
+      объёмБака: 70,
+      среднийРасход: '',
+      периодС: '2026-09-02',
+      периодПо: '2026-09-02',
+      одометрНаНачало: 1000,
+      одометрНаКонец: 1200,
+      остатокНаНачало: 20,
+      остатокНаКонец: 50,
+      водители: [{ фио: 'Первый', дни: new Set(['2026-09-02']) }],
+      заправки: [{ дата: '2026-09-02', время: '14:50', объём: 20 }],
+    });
+
+    const message = impossibleFuelBalanceMessage(20, 50, input.заправки);
+    expect(message).toBe(
+      'Остаток на конец (50 л) больше остатка на начало с учётом заправок (40 л). Проверьте данные.',
+    );
+
+    const result = calculate(input);
+    expect(result.листы).toEqual([]);
+    expect(result.предупреждения).toEqual([message]);
+    expect(result.расход).toBeNull();
+  });
+
+  it('does not zero mileage when a manual consumption still cannot reach the end residual', () => {
+    const input = baseInput({
+      типТС: 'грузовой',
+      формаПЛ: '4-c',
+      видТоплива: 'Аи-92',
+      объёмБака: 70,
+      среднийРасход: 10,
+      периодС: '2026-09-02',
+      периодПо: '2026-09-02',
+      одометрНаНачало: 1000,
+      одометрНаКонец: 1200,
+      остатокНаНачало: 20,
+      остатокНаКонец: 50,
+      водители: [{ фио: 'Первый', дни: new Set(['2026-09-02']) }],
+      заправки: [{ дата: '2026-09-02', время: '14:50', объём: 20 }],
+    });
+
+    const result = calculate(input);
+    expect(result.листы).toEqual([]);
+    expect(result.расход).toBeNull();
+    expect(result.предупреждения).toEqual([
+      'Остаток на конец (50 л) больше остатка на начало с учётом заправок (40 л). Проверьте данные.',
+    ]);
   });
 });
